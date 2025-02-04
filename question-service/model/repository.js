@@ -21,10 +21,8 @@ export async function getAllQuestions(){
 }
 
 export async function findQuestionByName(name) {
-    const regex = new RegExp(name, 'i')
-    return QuestionModel.find({ name: {$regex: regex}});
+    return QuestionModel.find({ name: { $regex: name, $options: "i" }});
 }
-
 
 export async function findQuestionByContent(content) {
     const regex = new RegExp(content, 'i')
@@ -32,14 +30,14 @@ export async function findQuestionByContent(content) {
 }
 
 export async function findQuestionByDifficulty(difficulty) {
-  return QuestionModel.find({ difficulty});
+  return QuestionModel.find({ difficulty });
 }
 
 export async function findQuestionById(id) {
   return QuestionModel.find({ id });
 }
 
-export async function updateQuestionById(id, nane, content, difficulty, topic) {
+export async function updateQuestionById(id, name, content, difficulty, topic) {
   return QuestionModel.findByIdAndUpdate(
     id,
     {

@@ -13,7 +13,8 @@ const QuestionModelSchema = new Schema({
     */
     name: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     content: {
         type: String,

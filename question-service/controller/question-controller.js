@@ -10,156 +10,123 @@ import {
   updateQuestionById as _updateQuestionById,
 } from "../model/repository.js";
 
-export async function createUser(req, res) {
-  try {
-    const { username, email, password } = req.body;
-    if (username && email && password) {
-      const existingUser = await _findUserByUsernameOrEmail(username, email);
-      if (existingUser) {
-        return res.status(409).json({ message: "username or email already exists" });
-      }
-
-      const salt = bcrypt.genSaltSync(10);
-      const hashedPassword = bcrypt.hashSync(password, salt);
-      const createdUser = await _createUser(username, email, hashedPassword);
-      return res.status(201).json({
-        message: `Created new user ${username} successfully`,
-        data: formatUserResponse(createdUser),
-      });
-    } else {
-      return res.status(400).json({ message: "username and/or email and/or password are missing" });
-    }
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Unknown error when creating new user!" });
-  }
-}
-
-export async function getUser(req, res) {
-  try {
-    const userId = req.params.id;
-    if (!isValidObjectId(userId)) {
-      return res.status(404).json({ message: `User ${userId} not found` });
-    }
-
-    const user = await _findUserById(userId);
-    if (!user) {
-      return res.status(404).json({ message: `User ${userId} not found` });
-    } else {
-      return res.status(200).json({ message: `Found user`, data: formatUserResponse(user) });
-    }
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Unknown error when getting user!" });
-  }
-}
-
-export async function getAllUsers(req, res) {
-  try {
-    const users = await _findAllUsers();
-
-    return res.status(200).json({ message: `Found users`, data: users.map(formatUserResponse) });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Unknown error when getting all users!" });
-  }
-}
-
-export async function updateUser(req, res) {
-  try {
-    const { username, email, password } = req.body;
-    if (username || email || password) {
-      const userId = req.params.id;
-      if (!isValidObjectId(userId)) {
-        return res.status(404).json({ message: `User ${userId} not found` });
-      }
-      const user = await _findUserById(userId);
-      if (!user) {
-        return res.status(404).json({ message: `User ${userId} not found` });
-      }
-      if (username || email) {
-        let existingUser = await _findUserByUsername(username);
-        if (existingUser && existingUser.id !== userId) {
-          return res.status(409).json({ message: "username already exists" });
+export async function createQuestion(req, res) {
+    try {
+        const { name, content, difficulty, topic } = req.body;
+        if (name && content && difficulty && topic) {
+            const existingQuestion = await _findQuestionBySpecificName(name);
+            if (existingQuestion) {
+                return res.status(409).json({ message: "question name already exists" });
+            }
+            const createdQuestion = await _createQuestion(name, content, difficulty, topic);
+            return res.status(201).json({
+                message: `Created new question "${name}" successfully`,
+                data: formatQuestionResponse(createdQuestion),
+            });
+        } 
+        else {
+            return res.status(400).json({ message: "name or content or difficulty or topic missing" });
         }
-        existingUser = await _findUserByEmail(email);
-        if (existingUser && existingUser.id !== userId) {
-          return res.status(409).json({ message: "email already exists" });
+    } 
+    catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Unknown error when creating new question" });
+    }
+}
+
+export async function findQuestionByName(req, res) {
+    try {
+        const name = req.params.name;
+        if (!isValidObjectId(name)) {
+            return res.status(404).json({ message: `Question "${name}" not found` });
         }
-      }
-
-      let hashedPassword;
-      if (password) {
-        const salt = bcrypt.genSaltSync(10);
-        hashedPassword = bcrypt.hashSync(password, salt);
-      }
-      const updatedUser = await _updateUserById(userId, username, email, hashedPassword);
-      return res.status(200).json({
-        message: `Updated data for user ${userId}`,
-        data: formatUserResponse(updatedUser),
-      });
-    } else {
-      return res.status(400).json({ message: "No field to update: username and email and password are all missing!" });
+        const question = await _findQuestionBySpecificName(name);
+        if (!question) {
+            return res.status(404).json({ message: `Question "${name}" not found` });
+        }
+        else {
+            return res.status(200).json({ message: `Found question`, data: formatQuestionResponse(question) });
+        }
     }
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Unknown error when updating user!" });
-  }
+    catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Unknown error when getting question by name" });
+    }
 }
 
-export async function updateUserPrivilege(req, res) {
-  try {
-    const { isAdmin } = req.body;
-
-    if (isAdmin !== undefined) {  // isAdmin can have boolean value true or false
-      const userId = req.params.id;
-      if (!isValidObjectId(userId)) {
-        return res.status(404).json({ message: `User ${userId} not found` });
-      }
-      const user = await _findUserById(userId);
-      if (!user) {
-        return res.status(404).json({ message: `User ${userId} not found` });
-      }
-
-      const updatedUser = await _updateUserPrivilegeById(userId, isAdmin === true);
-      return res.status(200).json({
-        message: `Updated privilege for user ${userId}`,
-        data: formatUserResponse(updatedUser),
-      });
-    } else {
-      return res.status(400).json({ message: "isAdmin is missing!" });
+export async function getAllQuestions(req, res) {
+    try {
+        const questions = await _getAllQuestions();
+        return res.status(200).json({ message: `Found questions`, data: questions.map(formatQuestionResponse) });
     }
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Unknown error when updating user privilege!" });
-  }
+    catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Unknown error when getting all questions" });
+    }
 }
 
-export async function deleteUser(req, res) {
-  try {
-    const userId = req.params.id;
-    if (!isValidObjectId(userId)) {
-      return res.status(404).json({ message: `User ${userId} not found` });
+export async function updateQuestion(req, res) {
+    try {
+        const { name, content, difficulty, topic } = req.body;
+        if (!(name || content || difficulty || topic)) {
+            return res.status(400).json({ message: "No field to update" });
+        }
+        const id = req.params.id;
+        if (!isValidObjectId(id)) {
+            return res.status(404).json({ message: `Question id parameter not found` });
+        }
+        const question = await _findQuestionById(id);
+        if (!question) {
+            return res.status(404).json({ message: `Question ${id} not found` });
+        }
+        if (name) {
+            let existingQuestion = await _findQuestionByName(name);
+            if (existingQuestion && existingQuestion.id !== id) {
+                return res.status(409).json({ message: "Question name already exists" });
+            }
+        }
+        const updatedQuestion = await _updateQuestionById(id, name, content, difficulty, topic);
+        return res.status(200).json({
+            message: `Updated data for question ${id}`,
+            data: formatQuestionResponse(updatedQuestion),
+        });
     }
-    const user = await _findUserById(userId);
-    if (!user) {
-      return res.status(404).json({ message: `User ${userId} not found` });
+    else {
+        return res.status(400).json({ message: "No field to update" });
     }
-
-    await _deleteUserById(userId);
-    return res.status(200).json({ message: `Deleted user ${userId} successfully` });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Unknown error when deleting user!" });
-  }
+    catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Unknown error when updating question" });
+    }
 }
 
-export function formatUserResponse(user) {
+export async function deleteQuestion(req, res) {
+    try {
+        const id = req.params.id;
+        if (!isValidObjectId(id)) {
+            return res.status(404).json({ message: `Question id parameter not found` });
+        }
+        const question = await _findQuestionById(id);
+        if (!question) {
+            return res.status(404).json({ message: `Question ${id} not found` });
+        }
+        await _deleteQuestionById(id);
+        return res.status(200).json({ message: `Deleted question ${id} successfully` });
+    } 
+    catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Unknown error when deleting question" });
+    }
+}
+
+export function formatQuestionResponse(question) {
+  const trimmedContent = str.length > 30 ? str.slice(0, 30) + "..." : str;
   return {
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    isAdmin: user.isAdmin,
-    createdAt: user.createdAt,
+    id: question.id,
+    username: question.name,
+    content: trimmedContent,
+    diffiuclty: question.difficulty,
+    topics: question.topics,
+    createdAt: question.createdAt,
   };
 }

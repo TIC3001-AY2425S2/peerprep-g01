@@ -7,7 +7,7 @@ import {
   getUser,
   updateUser,
   updateUserPrivilege,
-} from "../controller/user-controller.js";
+} from "../controller/question-controller.js";
 import { verifyAccessToken, verifyIsAdmin, verifyIsOwnerOrAdmin } from "../middleware/basic-access-control.js";
 
 const router = express.Router();

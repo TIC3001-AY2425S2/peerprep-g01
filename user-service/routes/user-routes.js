@@ -12,7 +12,8 @@ import { verifyAccessToken, verifyIsAdmin, verifyIsOwnerOrAdmin } from "../middl
 
 const router = express.Router();
 
-router.get("/", verifyAccessToken, verifyIsAdmin, getAllUsers);
+//router.get("/", verifyAccessToken, verifyIsAdmin, getAllUsers);
+router.get("/", getAllUsers);
 
 router.patch("/:id/privilege", verifyAccessToken, verifyIsAdmin, updateUserPrivilege);
 
