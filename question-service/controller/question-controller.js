@@ -2,12 +2,14 @@ import bcrypt from "bcrypt";
 import { isValidObjectId } from "mongoose";
 import {
   createQuestion as _createQuestion,
-  getAllQuestions as _getAllQuestions,
+  getQuestion as _getQuestion,
   findQuestionByName as _findQuestionByName,
   findQuestionByContent as _findQuestionByContent,
   findQuestionByDifficulty as _findQuestionByDifficulty,
   findQuestionById as _findQuestionById,
+  findQuestions as _findQuestions,
   updateQuestionById as _updateQuestionById,
+  deleteQuestionById as _deleteQuestionById
 } from "../model/repository.js";
 
 export async function createQuestion(req, res) {
@@ -34,29 +36,99 @@ export async function createQuestion(req, res) {
     }
 }
 
-export async function findQuestionByName(req, res) {
+export async function findQuestion(req, res) {
     try {
-        const name = req.params.name;
-        if (!isValidObjectId(name)) {
-            return res.status(404).json({ message: `Question "${name}" not found` });
+        const term = req.params.term;
+        if (!isValidObjectId(term)) {
+            return res.status(404).json({ message: `Question search parameter not found` });
         }
-        const question = await _findQuestionBySpecificName(name);
-        if (!question) {
-            return res.status(404).json({ message: `Question "${name}" not found` });
+        const question = await _findQuestions(term)
+        if (!question){
+            return res.status(404).json({ message: `Questions with term "${term}" not found` });
         }
-        else {
-            return res.status(200).json({ message: `Found question`, data: formatQuestionResponse(question) });
-        }
+        return res.status(200).json({ message: `Found questions with term "${term}"`, data: formatQuestionResponse(question) });
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: "Unknown error when getting question by name" });
+        return res.status(500).json({ message: `Unknown error when finding question by term "${term}"` });
+    }
+}
+
+export async function findQuestionById(req, res) {
+    try {
+        const term = req.params.id;
+        if (!isValidObjectId(term)) {
+            return res.status(404).json({ message: `Question search id parameter not found` });
+        }
+        const question = await _findQuestions(term)
+        if (!question){
+            return res.status(404).json({ message: `Question with id "${term}" not found` });
+        }
+        return res.status(200).json({ message: `Found questions with id "${term}"`, data: formatQuestionResponse(question) });
+    }
+    catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: `Unknown error when finding question by id "${term}"` });
+    }
+}
+
+export async function findQuestionByContent(req, res) {
+    try {
+        const term = req.params.content;
+        if (!isValidObjectId(term)) {
+            return res.status(404).json({ message: `Question search content parameter not found` });
+        }
+        const question = await _findQuestions(term)
+        if (!question){
+            return res.status(404).json({ message: `Question with content "${term}" not found` });
+        }
+        return res.status(200).json({ message: `Found questions with content "${term}"`, data: formatQuestionResponse(question) });
+    }
+    catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: `Unknown error when finding question by content "${term}"` });
+    }
+}
+
+export async function findQuestionByName(req, res) {
+    try {
+        const term = req.params.name;
+        if (!isValidObjectId(term)) {
+            return res.status(404).json({ message: `Question search name parameter not found` });
+        }
+        const question = await _findQuestions(term)
+        if (!question){
+            return res.status(404).json({ message: `Question with name "${term}" not found` });
+        }
+        return res.status(200).json({ message: `Found questions with name "${term}"`, data: formatQuestionResponse(question) });
+    }
+    catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: `Unknown error when finding question by name "${term}"` });
+    }
+}
+
+export async function findQuestionByDifficulty(req, res) {
+    try {
+        const term = req.params.difficulty;
+        if (!isValidObjectId(term)) {
+            return res.status(404).json({ message: `Question search difficulty parameter not found` });
+        }
+        const question = await _findQuestions(term)
+        if (!question){
+            return res.status(404).json({ message: `Question with difficulty "${term}" not found` });
+        }
+        return res.status(200).json({ message: `Found questions with difficulty "${term}"`, data: formatQuestionResponse(question) });
+    }
+    catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: `Unknown error when finding question by difficulty "${term}"` });
     }
 }
 
 export async function getAllQuestions(req, res) {
     try {
-        const questions = await _getAllQuestions();
+        const questions = await _getQuestions();
         return res.status(200).json({ message: `Found questions`, data: questions.map(formatQuestionResponse) });
     }
     catch (err) {
@@ -108,10 +180,10 @@ export async function deleteQuestion(req, res) {
         }
         const question = await _findQuestionById(id);
         if (!question) {
-            return res.status(404).json({ message: `Question ${id} not found` });
+            return res.status(404).json({ message: `Question id ${id} not found` });
         }
         await _deleteQuestionById(id);
-        return res.status(200).json({ message: `Deleted question ${id} successfully` });
+        return res.status(200).json({ message: `Deleted question id ${id} successfully` });
     } 
     catch (err) {
         console.error(err);
@@ -120,7 +192,7 @@ export async function deleteQuestion(req, res) {
 }
 
 export function formatQuestionResponse(question) {
-  const trimmedContent = str.length > 30 ? str.slice(0, 30) + "..." : str;
+  const trimmedContent = str.length > 30 ? str.slice(0, 40) + "..." : str;
   return {
     id: question.id,
     username: question.name,

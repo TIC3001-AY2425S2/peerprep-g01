@@ -30,12 +30,12 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/", userRoutes);
+app.use("/questions", userRoutes);
 
 app.get("/", (req, res, next) => {
   console.log("Sending Greetings!");
   res.json({
-    message: "Hello World from user-service",
+    message: "Hello World from question-service",
   });
 });
 

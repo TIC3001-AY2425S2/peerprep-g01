@@ -16,8 +16,20 @@ export async function createQuestion(name, content, difficulty, topics) {
     return new QuestionModel({ name, content, difficulty, topics }).save();
 }
 
-export async function getAllQuestions(){
+export async function getQuestions(){
     return QuestionModel.find()
+}
+
+export async function findQuestion(term){
+    return QuestionModel.find({
+        $or:[
+            { id: { $regex: term, $options: "i" }},
+            { name: { $regex: term, $options: "i" }},
+            { content: { $regex: term, $options: "i"}},
+            { difficulty: { $regex: term, $options: "i" }},
+            { topic: { $regex: term, $options: "i" }}
+        ]
+    });
 }
 
 export async function findQuestionByName(name) {
@@ -25,34 +37,33 @@ export async function findQuestionByName(name) {
 }
 
 export async function findQuestionByContent(content) {
-    const regex = new RegExp(content, 'i')
-    return QuestionModel.find({ content: {$regex: regex}});
+    return QuestionModel.find({ content: { $regex: content, $options: "i" }});
 }
 
 export async function findQuestionByDifficulty(difficulty) {
-  return QuestionModel.find({ difficulty });
+    return QuestionModel.find({ difficulty });
 }
 
 export async function findQuestionById(id) {
-  return QuestionModel.find({ id });
+    return QuestionModel.find({ id });
 }
 
 export async function updateQuestionById(id, name, content, difficulty, topic) {
-  return QuestionModel.findByIdAndUpdate(
-    id,
-    {
-      $set: {
-        name,
-        content,
-        difficulty,
-        topic,
-      },
-    },
-    { new: true },  // return the updated question
-  );
+    return QuestionModel.findByIdAndUpdate(
+        id,
+        {
+            $set: {
+                name,
+                content,
+                difficulty,
+                topic,
+            },
+        },
+        { new: true },  // return the updated question
+    );
 }
 
 
 export async function deleteQuestionById(id) {
-  return QuestionModel.findByIdAndDelete(id);
+    return QuestionModel.findByIdAndDelete(id);
 }
