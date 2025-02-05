@@ -9,6 +9,7 @@ import {
   findQuestionByDescription,
   findQuestionByComplexity,
   findQuestionByTitle,
+  findQuestionByCategory,
   updateQuestion
 } from "../controller/question-controller.js";
 import { verifyAccessToken, verifyIsAdmin } from "../middleware/basic-access-control.js";
@@ -22,6 +23,8 @@ router.get("/any/:term", verifyAccessToken, findQuestionByTerm);
 router.get("/id/:id", verifyAccessToken, findQuestionById);
 
 router.get("/description/:description", verifyAccessToken, findQuestionByDescription);
+
+router.get("/category/:category", verifyAccessToken, findQuestionByCategory);
 
 router.get("/complexity/:complexity", verifyAccessToken, findQuestionByComplexity);
 

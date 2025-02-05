@@ -7,6 +7,7 @@ import {
   findQuestionByLikeTitle as _findQuestionByLikeTitle,
   findQuestionByDescription as _findQuestionByDescription,
   findQuestionByComplexity as _findQuestionByComplexity,
+  findQuestionByCategory as _findQuestionByCategory,
   findQuestionById as _findQuestionById,
   findQuestionByTerm as _findQuestionByTerm,
   updateQuestionById as _updateQuestionById,
@@ -15,15 +16,16 @@ import {
 
 export async function createQuestion(req, res) {
     try {
-        const { title, description, complexity, categories } = req.body;
+        const { title, description, complexity, categories, link } = req.body;
         if (!(title, description, complexity, categories)){
             return res.status(400).json({ message: "title or description or complexity or categories missing" }); 
         }
-        const isQuestionExists = await _findQuestionByExactTitle(title);
+        let title_trim = title.trim()
+        const isQuestionExists = await _findQuestionByExactTitle(title_trim);
         if (isQuestionExists) {
             return res.status(409).json({ message: "Question title already exists" });
         }
-        const createdQuestion = await _createQuestion(title, description, complexity, categories);
+        const createdQuestion = await _createQuestion(title_trim, description, complexity, categories, link);
         return res.status(201).json({
             message: `Success`,
             data: formatQuestionResponse(createdQuestion),
@@ -31,22 +33,19 @@ export async function createQuestion(req, res) {
     } 
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: "Unknown error" });
+        return res.status(500).json({ message: err });
     }
 }
 
 export async function findQuestionByTerm(req, res) {
     try {
         const term = req.params.term;
-        const question = await _findQuestionByTerm(term)
-        if (!question){
-            return res.status(404).json({ message: `Not found` });
-        }
-        return res.status(200).json({ message: `Success`, data: formatQuestionResponse(question) });
+        const questions = await _findQuestionByTerm(term)
+        return res.status(200).json({ message: `Success`, data: questions.map(formatQuestionResponse) });
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: `Unknown error` });
+        return res.status(500).json({ message: err });
     }
 }
 
@@ -64,52 +63,55 @@ export async function findQuestionById(req, res) {
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: `Unknown error` });
+        return res.status(500).json({ message: err });
     }
 }
 
 export async function findQuestionByDescription(req, res) {
     try {
         const description = req.params.description;
-        const question = await _findQuestionByDescription(description)
-        if (!question){
-            return res.status(404).json({ message: `Not found` });
-        }
-        return res.status(200).json({ message: `Success`, data: formatQuestionResponse(question) });
+        const questions = await _findQuestionByDescription(description)
+        return res.status(200).json({ message: `Success`, data: questions.map(formatQuestionResponse) });
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: `Unknown error` });
+        return res.status(500).json({ message: err });
     }
 }
 
 export async function findQuestionByTitle(req, res) {
     try {
         const title = req.params.title;
-        const question = await _findQuestionByLikeTitle(title)
-        if (!question){
-            return res.status(404).json({ message: `Not found` });
-        }
-        return res.status(200).json({ message: `Success`, data: formatQuestionResponse(question) });
+        const questions = await _findQuestionByLikeTitle(title)
+        return res.status(200).json({ message: `Success`, data: questions.map(formatQuestionResponse) });
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: `Unknown error` });
+        return res.status(500).json({ message: err });
     }
 }
 
 export async function findQuestionByComplexity(req, res) {
     try {
         const complexity = req.params.complexity;
-        const question = await _findQuestionByComplexity(difficulty)
-        if (!question){
-            return res.status(404).json({ message: `Not found` });
-        }
-        return res.status(200).json({ message: `Success`, data: formatQuestionResponse(question) });
+        const questions = await _findQuestionByComplexity(complexity)
+        return res.status(200).json({ message: `Success`, data: questions.map(formatQuestionResponse) });
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: `Unknown error` });
+        return res.status(500).json({ message: err });
+    }
+}
+
+export async function findQuestionByCategory(req, res) {
+    try {
+        const category = req.params.category;
+        const questions = await _findQuestionByCategory(category)
+        return res.status(200).json({ message: `Success`, data: questions.map(formatQuestionResponse) });
+    }
+    catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: err });
     }
 }
 
@@ -120,14 +122,14 @@ export async function getAllQuestions(req, res) {
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: "Unknown error" });
+        return res.status(500).json({ message: err });
     }
 }
 
 export async function updateQuestion(req, res) {
     try {
-        const { name, content, difficulty, topic } = req.body;
-        if (!(name || content || difficulty || topic)) {
+        const { title, description, complexity, categories, link } = req.body;
+        if (!(title || description || complexity || categories || link)) {
             return res.status(400).json({ message: "No field to update" });
         }
         const id = req.params.id;
@@ -138,13 +140,13 @@ export async function updateQuestion(req, res) {
         if (!question) {
             return res.status(404).json({ message: `Id not found` });
         }
-        if (name) {
-            let existingQuestion = await _findQuestionByName(name);
+        if (title) {
+            let existingQuestion = await _findQuestionByExactTitle(title);
             if (existingQuestion && existingQuestion.id !== id) {
-                return res.status(409).json({ message: "Question name already exists" });
+                return res.status(409).json({ message: "Question title already exists" });
             }
         }
-        const updatedQuestion = await _updateQuestionById(id, name, content, difficulty, topic);
+        const updatedQuestion = await _updateQuestionById(id, title, description, complexity, categories, link);
         return res.status(200).json({
             message: `Success`,
             data: formatQuestionResponse(updatedQuestion),
@@ -152,7 +154,7 @@ export async function updateQuestion(req, res) {
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: "Unknown error" });
+        return res.status(500).json({ message: err });
     }
 }
 
@@ -171,22 +173,23 @@ export async function deleteQuestion(req, res) {
     } 
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: "Unknown error" });
+        return res.status(500).json({ message: err });
     }
 }
 
 export function formatQuestionResponse(question) {
-    let content = question.content
-    if(content){
-        content = content.length > 30 ? content.slice(0, 40) + "..." : content;
+    let description = question.description
+    if(description){
+        description = description.length > 30 ? description.slice(0, 40) + "..." : description;
     }
     
     return {
         id: question.id,
-        username: question.name,
-        content: content,
-        difficulty: question.difficulty,
-        topics: question.topics,
+        title: question.title,
+        description: description,
+        complexity: question.complexity,
+        categories: question.categories,
         createdAt: question.createdAt,
+        link: question.link
     };
 }

@@ -28,7 +28,7 @@ const QuestionModelSchema = new Schema({
         required: true
     },
     link:{
-        type: String,
+        type: String
     },
     createdAt: {
         type: Date,
