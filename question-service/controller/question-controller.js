@@ -2,138 +2,125 @@ import bcrypt from "bcrypt";
 import { isValidObjectId } from "mongoose";
 import {
   createQuestion as _createQuestion,
-  getQuestion as _getQuestion,
-  findQuestionByName as _findQuestionByName,
-  findQuestionByContent as _findQuestionByContent,
-  findQuestionByDifficulty as _findQuestionByDifficulty,
+  getQuestions as _getQuestions,
+  findQuestionByExactTitle as _findQuestionByExactTitle,
+  findQuestionByLikeTitle as _findQuestionByLikeTitle,
+  findQuestionByDescription as _findQuestionByDescription,
+  findQuestionByComplexity as _findQuestionByComplexity,
   findQuestionById as _findQuestionById,
-  findQuestions as _findQuestions,
+  findQuestionByTerm as _findQuestionByTerm,
   updateQuestionById as _updateQuestionById,
   deleteQuestionById as _deleteQuestionById
 } from "../model/repository.js";
 
 export async function createQuestion(req, res) {
     try {
-        const { name, content, difficulty, topic } = req.body;
-        if (name && content && difficulty && topic) {
-            const existingQuestion = await _findQuestionBySpecificName(name);
-            if (existingQuestion) {
-                return res.status(409).json({ message: "question name already exists" });
-            }
-            const createdQuestion = await _createQuestion(name, content, difficulty, topic);
-            return res.status(201).json({
-                message: `Created new question "${name}" successfully`,
-                data: formatQuestionResponse(createdQuestion),
-            });
-        } 
-        else {
-            return res.status(400).json({ message: "name or content or difficulty or topic missing" });
+        const { title, description, complexity, categories } = req.body;
+        if (!(title, description, complexity, categories)){
+            return res.status(400).json({ message: "title or description or complexity or categories missing" }); 
         }
+        const isQuestionExists = await _findQuestionByExactTitle(title);
+        if (isQuestionExists) {
+            return res.status(409).json({ message: "Question title already exists" });
+        }
+        const createdQuestion = await _createQuestion(title, description, complexity, categories);
+        return res.status(201).json({
+            message: `Success`,
+            data: formatQuestionResponse(createdQuestion),
+        });
     } 
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: "Unknown error when creating new question" });
+        return res.status(500).json({ message: "Unknown error" });
     }
 }
 
-export async function findQuestion(req, res) {
+export async function findQuestionByTerm(req, res) {
     try {
         const term = req.params.term;
-        if (!isValidObjectId(term)) {
-            return res.status(404).json({ message: `Question search parameter not found` });
-        }
-        const question = await _findQuestions(term)
+        const question = await _findQuestionByTerm(term)
         if (!question){
-            return res.status(404).json({ message: `Questions with term "${term}" not found` });
+            return res.status(404).json({ message: `Not found` });
         }
-        return res.status(200).json({ message: `Found questions with term "${term}"`, data: formatQuestionResponse(question) });
+        return res.status(200).json({ message: `Success`, data: formatQuestionResponse(question) });
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: `Unknown error when finding question by term "${term}"` });
+        return res.status(500).json({ message: `Unknown error` });
     }
 }
 
 export async function findQuestionById(req, res) {
     try {
-        const term = req.params.id;
-        if (!isValidObjectId(term)) {
-            return res.status(404).json({ message: `Question search id parameter not found` });
+        const id = req.params.id;
+        if (!isValidObjectId(id)) {
+            return res.status(404).json({ message: `Not found` });
         }
-        const question = await _findQuestions(term)
+        const question = await _findQuestionById(id)
         if (!question){
-            return res.status(404).json({ message: `Question with id "${term}" not found` });
+            return res.status(404).json({ message: `Not found` });
         }
-        return res.status(200).json({ message: `Found questions with id "${term}"`, data: formatQuestionResponse(question) });
+        return res.status(200).json({ message: `Success`, data: formatQuestionResponse(question) });
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: `Unknown error when finding question by id "${term}"` });
+        return res.status(500).json({ message: `Unknown error` });
     }
 }
 
-export async function findQuestionByContent(req, res) {
+export async function findQuestionByDescription(req, res) {
     try {
-        const term = req.params.content;
-        if (!isValidObjectId(term)) {
-            return res.status(404).json({ message: `Question search content parameter not found` });
-        }
-        const question = await _findQuestions(term)
+        const description = req.params.description;
+        const question = await _findQuestionByDescription(description)
         if (!question){
-            return res.status(404).json({ message: `Question with content "${term}" not found` });
+            return res.status(404).json({ message: `Not found` });
         }
-        return res.status(200).json({ message: `Found questions with content "${term}"`, data: formatQuestionResponse(question) });
+        return res.status(200).json({ message: `Success`, data: formatQuestionResponse(question) });
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: `Unknown error when finding question by content "${term}"` });
+        return res.status(500).json({ message: `Unknown error` });
     }
 }
 
-export async function findQuestionByName(req, res) {
+export async function findQuestionByTitle(req, res) {
     try {
-        const term = req.params.name;
-        if (!isValidObjectId(term)) {
-            return res.status(404).json({ message: `Question search name parameter not found` });
-        }
-        const question = await _findQuestions(term)
+        const title = req.params.title;
+        const question = await _findQuestionByLikeTitle(title)
         if (!question){
-            return res.status(404).json({ message: `Question with name "${term}" not found` });
+            return res.status(404).json({ message: `Not found` });
         }
-        return res.status(200).json({ message: `Found questions with name "${term}"`, data: formatQuestionResponse(question) });
+        return res.status(200).json({ message: `Success`, data: formatQuestionResponse(question) });
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: `Unknown error when finding question by name "${term}"` });
+        return res.status(500).json({ message: `Unknown error` });
     }
 }
 
-export async function findQuestionByDifficulty(req, res) {
+export async function findQuestionByComplexity(req, res) {
     try {
-        const term = req.params.difficulty;
-        if (!isValidObjectId(term)) {
-            return res.status(404).json({ message: `Question search difficulty parameter not found` });
-        }
-        const question = await _findQuestions(term)
+        const complexity = req.params.complexity;
+        const question = await _findQuestionByComplexity(difficulty)
         if (!question){
-            return res.status(404).json({ message: `Question with difficulty "${term}" not found` });
+            return res.status(404).json({ message: `Not found` });
         }
-        return res.status(200).json({ message: `Found questions with difficulty "${term}"`, data: formatQuestionResponse(question) });
+        return res.status(200).json({ message: `Success`, data: formatQuestionResponse(question) });
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: `Unknown error when finding question by difficulty "${term}"` });
+        return res.status(500).json({ message: `Unknown error` });
     }
 }
 
 export async function getAllQuestions(req, res) {
     try {
         const questions = await _getQuestions();
-        return res.status(200).json({ message: `Found questions`, data: questions.map(formatQuestionResponse) });
+        return res.status(200).json({ message: `Success`, data: questions.map(formatQuestionResponse) });
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: "Unknown error when getting all questions" });
+        return res.status(500).json({ message: "Unknown error" });
     }
 }
 
@@ -145,11 +132,11 @@ export async function updateQuestion(req, res) {
         }
         const id = req.params.id;
         if (!isValidObjectId(id)) {
-            return res.status(404).json({ message: `Question id parameter not found` });
+            return res.status(404).json({ message: `Id not found` });
         }
         const question = await _findQuestionById(id);
         if (!question) {
-            return res.status(404).json({ message: `Question ${id} not found` });
+            return res.status(404).json({ message: `Id not found` });
         }
         if (name) {
             let existingQuestion = await _findQuestionByName(name);
@@ -159,16 +146,13 @@ export async function updateQuestion(req, res) {
         }
         const updatedQuestion = await _updateQuestionById(id, name, content, difficulty, topic);
         return res.status(200).json({
-            message: `Updated data for question ${id}`,
+            message: `Success`,
             data: formatQuestionResponse(updatedQuestion),
         });
     }
-    else {
-        return res.status(400).json({ message: "No field to update" });
-    }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: "Unknown error when updating question" });
+        return res.status(500).json({ message: "Unknown error" });
     }
 }
 
@@ -176,29 +160,33 @@ export async function deleteQuestion(req, res) {
     try {
         const id = req.params.id;
         if (!isValidObjectId(id)) {
-            return res.status(404).json({ message: `Question id parameter not found` });
+            return res.status(404).json({ message: `Id not found` });
         }
         const question = await _findQuestionById(id);
         if (!question) {
-            return res.status(404).json({ message: `Question id ${id} not found` });
+            return res.status(404).json({ message: `Id not found` });
         }
         await _deleteQuestionById(id);
-        return res.status(200).json({ message: `Deleted question id ${id} successfully` });
+        return res.status(200).json({ message: `Success` });
     } 
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: "Unknown error when deleting question" });
+        return res.status(500).json({ message: "Unknown error" });
     }
 }
 
 export function formatQuestionResponse(question) {
-  const trimmedContent = str.length > 30 ? str.slice(0, 40) + "..." : str;
-  return {
-    id: question.id,
-    username: question.name,
-    content: trimmedContent,
-    diffiuclty: question.difficulty,
-    topics: question.topics,
-    createdAt: question.createdAt,
-  };
+    let content = question.content
+    if(content){
+        content = content.length > 30 ? content.slice(0, 40) + "..." : content;
+    }
+    
+    return {
+        id: question.id,
+        username: question.name,
+        content: content,
+        difficulty: question.difficulty,
+        topics: question.topics,
+        createdAt: question.createdAt,
+    };
 }

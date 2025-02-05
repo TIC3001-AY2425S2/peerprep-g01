@@ -4,33 +4,33 @@ import {
   createQuestion,
   deleteQuestion,
   getAllQuestions,
-  findQuestion,
+  findQuestionByTerm,
   findQuestionById,
-  findQuestionByContent,
-  findQuestionByDifficulty,
-  findQuestionByName,
+  findQuestionByDescription,
+  findQuestionByComplexity,
+  findQuestionByTitle,
   updateQuestion
 } from "../controller/question-controller.js";
-import { verifyAccessToken, verifyIsAdmin, verifyIsOwnerOrAdmin } from "../middleware/basic-access-control.js";
+import { verifyAccessToken, verifyIsAdmin } from "../middleware/basic-access-control.js";
 
 const router = express.Router();
 
 router.get("/", verifyAccessToken, getAllQuestions);
 
-router.get("/:term", verifyAccessToken, findQuestion);
+router.get("/any/:term", verifyAccessToken, findQuestionByTerm);
 
 router.get("/id/:id", verifyAccessToken, findQuestionById);
 
-router.get("/content/:content", verifyAccessToken, findQuestionByContent));
+router.get("/description/:description", verifyAccessToken, findQuestionByDescription);
 
-router.get("/difficulty/:difficulty", verifyAccessToken, findQuestionByDifficulty));
+router.get("/complexity/:complexity", verifyAccessToken, findQuestionByComplexity);
 
-router.get("/name/:name", verifyAccessToken, findQuestionByName));
+router.get("/title/:title", verifyAccessToken, findQuestionByTitle);
 
-router.post("/", verifyAccessToken, verifyIsOwnerOrAdmin, createQuestion);
+router.post("/", verifyAccessToken, verifyIsAdmin, createQuestion);
 
-router.patch("/:id", verifyAccessToken, verifyIsOwnerOrAdmin, updateQuestion);
+router.patch("/:id", verifyAccessToken, verifyIsAdmin, updateQuestion);
 
-router.delete("/:id", verifyAccessToken, verifyIsOwnerOrAdmin, deleteQuestion);
+router.delete("/:id", verifyAccessToken, verifyIsAdmin, deleteQuestion);
 
 export default router;

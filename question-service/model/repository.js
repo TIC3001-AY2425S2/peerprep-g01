@@ -1,5 +1,4 @@
 import QuestionModel from "./question-model.js";
-import 
 import "dotenv/config";
 import { connect } from "mongoose";
 
@@ -12,43 +11,52 @@ export async function connectToDB() {
     await connect(mongoDBUri);
 }
 
-export async function createQuestion(name, content, difficulty, topics) {
-    return new QuestionModel({ name, content, difficulty, topics }).save();
+export async function createQuestion(title, description, complexity, categories) {
+    return new QuestionModel({ title, description, complexity, categories }).save();
 }
 
 export async function getQuestions(){
     return QuestionModel.find()
 }
 
-export async function findQuestion(term){
+export async function findQuestionByTerm(term){
     return QuestionModel.find({
         $or:[
-            { id: { $regex: term, $options: "i" }},
-            { name: { $regex: term, $options: "i" }},
-            { content: { $regex: term, $options: "i"}},
-            { difficulty: { $regex: term, $options: "i" }},
-            { topic: { $regex: term, $options: "i" }}
+            { _id: { $regex: term, $options: "i" }},
+            { title: { $regex: term, $options: "i" }},
+            { description: { $regex: term, $options: "i"}},
+            { complexity: { $regex: term, $options: "i" }},
+            { categories: { $regex: term, $options: "i" }},
+            { link: { $regex: term, $options: "i" }}
         ]
     });
 }
 
-export async function findQuestionByName(name) {
+export async function findQuestionByLikeTitle(name) {
     return QuestionModel.find({ name: { $regex: name, $options: "i" }});
 }
 
-export async function findQuestionByContent(content) {
-    return QuestionModel.find({ content: { $regex: content, $options: "i" }});
+export async function findQuestionByExactTitle(name) {
+    return QuestionModel.findOne({ name });
 }
 
-export async function findQuestionByDifficulty(difficulty) {
-    return QuestionModel.find({ difficulty });
+export async function findQuestionByDescription(desc) {
+    return QuestionModel.find({ desc: { $regex: desc, $options: "i" }});
+}
+
+export async function findQuestionByComplexity(complexity) {
+    return QuestionModel.find({ complexity });
 }
 
 export async function findQuestionById(id) {
-    return QuestionModel.find({ id });
+    return QuestionModel.findById({ id });
 }
 
-export async function updateQuestionById(id, name, content, difficulty, topic) {
+export async function findQuestionByCategory(category) {
+    return QuestionModel.find({ categories: { $in: [category] }});
+}
+
+export async function updateQuestionById(id, name, content, complexity, topic) {
     return QuestionModel.findByIdAndUpdate(
         id,
         {

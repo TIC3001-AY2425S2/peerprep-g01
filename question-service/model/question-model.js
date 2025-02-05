@@ -3,29 +3,21 @@ import mongoose from "mongoose";
 const Schema = mongoose.Schema;
 
 const QuestionModelSchema = new Schema({
-    /*
-    id:{
-        type: Number,
-        unique: true,
-        required: true,
-        default: 0
-    },
-    */
-    name: {
+    title: {
         type: String,
         required: true,
         unique: true
     },
-    content: {
+    description: {
         type: String,
         required: true,
     },
-    difficulty : {
+    complexity: {
         type: String,
-        enum : ['easy','medium','hard']
+        enum : ['easy','medium','hard'],
         required: true
     },
-    topics: {
+    categories: {
         type: [String],
         /*
         type: [{
@@ -34,6 +26,9 @@ const QuestionModelSchema = new Schema({
         }],
         */
         required: true
+    },
+    link:{
+        type: String,
     },
     createdAt: {
         type: Date,
