@@ -23,7 +23,7 @@ export async function handleLogin(req, res) {
         username: user.username,
         isAdmin: user.isAdmin
       }, process.env.JWT_SECRET, {
-        expiresIn: "1d",
+        expiresIn: "30d",
       });
       return res.status(200).json({ message: "User logged in", data: { accessToken, ...formatUserResponse(user) } });
     } catch (err) {
