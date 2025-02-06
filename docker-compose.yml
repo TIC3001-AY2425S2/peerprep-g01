@@ -29,6 +29,6 @@ services:
   #   networks:
   #     - peerprep_network
 
-networks:
-  peerprep_network:
-    external: true
+# networks:
+#   peerprep_network:
+#     external: true
