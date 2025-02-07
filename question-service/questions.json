@@ -1,0 +1,185 @@
+[
+  {
+    "title": "Reverse a String",
+    "description": "Write a function that reverses a string. The input string is given as an array of characters s. You must do this by modifying the input array in-place with O(1) extra memory.",
+    "categories": ["Strings", "Algorithms"],
+    "complexity": "Easy",
+    "link": "https://leetcode.com/problems/reverse-string/"
+  },
+  {
+    "title": "Linked List Cycle Detection",
+    "description": "Implement a function to detect if a linked list contains a cycle.",
+    "categories": ["Data Structures", "Algorithms"],
+    "complexity": "Easy",
+    "link": "https://leetcode.com/problems/linked-list-cycle/"
+  },
+  {
+    "title": "Roman to Integer",
+    "description": "Given a roman numeral, convert it to an integer.",
+    "categories": ["Algorithms"],
+    "complexity": "Easy",
+    "link": "https://leetcode.com/problems/roman-to-integer/"
+  },
+  {
+    "title": "Add Binary",
+    "description": "Given two binary strings a and b, return their sum as a binary string.",
+    "categories": ["Bit Manipulation", "Algorithms"],
+    "complexity": "Easy",
+    "link": "https://leetcode.com/problems/add-binary/"
+  },
+  {
+    "title": "Fibonacci Number",
+    "description": "The Fibonacci numbers, commonly denoted F(n) form a sequence, called the Fibonacci sequence, such that each number is the sum of the two preceding ones, starting from 0 and 1.",
+    "categories": ["Recursion", "Algorithms"],
+    "complexity": "Easy",
+    "link": "https://leetcode.com/problems/fibonacci-number/"
+  },
+  {
+    "title": "Implement Stack using Queues",
+    "description": "Implement a last-in-first-out (LIFO) stack using only two queues.",
+    "categories": ["Data Structures"],
+    "complexity": "Easy",
+    "link": "https://leetcode.com/problems/implement-stack-using-queues/"
+  },
+  {
+    "title": "Combine Two Tables",
+    "description": "Write a SQL query to combine two tables and return all matching records.",
+    "categories": ["Databases"],
+    "complexity": "Easy",
+    "link": "https://leetcode.com/problems/combine-two-tables/"
+  },
+  {
+    "title": "Repeated DNA Sequences",
+    "description": "Given a DNA sequence, return all the 10-letter-long sequences that occur more than once.",
+    "categories": ["Algorithms", "Bit Manipulation"],
+    "complexity": "Medium",
+    "link": "https://leetcode.com/problems/repeated-dna-sequences/"
+  },
+  {
+    "title": "Course Schedule",
+    "description": "Determine if a student can finish all courses given a set of prerequisites.",
+    "categories": ["Data Structures", "Algorithms"],
+    "complexity": "Medium",
+    "link": "https://leetcode.com/problems/course-schedule/"
+  },
+  {
+    "title": "LRU Cache Design",
+    "description": "Design and implement an LRU (Least Recently Used) cache.",
+    "categories": ["Data Structures"],
+    "complexity": "Medium",
+    "link": "https://leetcode.com/problems/lru-cache/"
+  },
+  {
+    "title": "Longest Common Subsequence",
+    "description": "Given two strings, return the length of their longest common subsequence.",
+    "categories": ["Strings", "Algorithms"],
+    "complexity": "Medium",
+    "link": "https://leetcode.com/problems/longest-common-subsequence/"
+  },
+  {
+    "title": "Rotate Image",
+    "description": "You are given an n x n 2D matrix representing an image, rotate the image by 90 degrees clockwise.",
+    "categories": ["Arrays", "Algorithms"],
+    "complexity": "Medium",
+    "link": "https://leetcode.com/problems/rotate-image/"
+  },
+  {
+    "title": "Airplane Seat Assignment Probability",
+    "description": "Determine the probability that the last passenger gets their assigned seat when passengers pick seats randomly.",
+    "categories": ["Brainteaser"],
+    "complexity": "Medium",
+    "link": "https://leetcode.com/problems/airplane-seat-assignment-probability/"
+  },
+  {
+    "title": "Validate Binary Search Tree",
+    "description": "Determine if a given binary tree is a valid binary search tree.",
+    "categories": ["Data Structures", "Algorithms"],
+    "complexity": "Medium",
+    "link": "https://leetcode.com/problems/validate-binary-search-tree/"
+  },
+  {
+    "title": "Sliding Window Maximum",
+    "description": "Given an array, return the maximum value in each sliding window of size k.",
+    "categories": ["Arrays", "Algorithms"],
+    "complexity": "Hard",
+    "link": "https://leetcode.com/problems/sliding-window-maximum/"
+  },
+  {
+    "title": "N-Queen Problem",
+    "description": "Return all distinct solutions to the n-queens puzzle where no two queens attack each other.",
+    "categories": ["Algorithms"],
+    "complexity": "Hard",
+    "link": "https://leetcode.com/problems/n-queens/"
+  },
+  {
+    "title": "Serialize and Deserialize a Binary Tree",
+    "description": "Design an algorithm to serialize and deserialize a binary tree.",
+    "categories": ["Data Structures", "Algorithms"],
+    "complexity": "Hard",
+    "link": "https://leetcode.com/problems/serialize-and-deserialize-binary-tree/"
+  },
+  {
+    "title": "Wildcard Matching",
+    "description": "Implement wildcard pattern matching with support for '?' and '*' where '*' matches any sequence of characters.",
+    "categories": ["Strings", "Algorithms"],
+    "complexity": "Hard",
+    "link": "https://leetcode.com/problems/wildcard-matching/"
+  },
+  {
+    "title": "Chalkboard XOR Game",
+    "description": "Given an array of integers, determine if Alice wins the game assuming both players play optimally.",
+    "categories": ["Brainteaser"],
+    "complexity": "Hard",
+    "link": "https://leetcode.com/problems/chalkboard-xor-game/"
+  },
+  {
+    "title": "Trips and Users",
+    "description": "Find the cancellation rate of taxi requests with unbanned users each day between '2013-10-01' and '2013-10-03'.",
+    "categories": ["Databases"],
+    "complexity": "Hard",
+    "link": "https://leetcode.com/problems/trips-and-users/"
+  },
+  {
+    "title": "AAA_title only search",
+    "description": "AAA_title",
+    "categories": ["AAA_title"],
+    "complexity": "Hard",
+    "link": "AAA_title"
+  },
+  {
+    "title": "BBB_description only search",
+    "description": "BBB_description",
+    "categories": ["Databases"],
+    "complexity": "Hard",
+    "link": "https://leetcode.com/problems/trips-and-users/"
+  },
+  {
+    "title": "AAA_title_not_match",
+    "description": "AAA_title",
+    "categories": ["AAA_title"],
+    "complexity": "Hard",
+    "link": "AAA_title"
+  },
+  {
+    "title": "BBB_description_not_match",
+    "description": "AAA_title",
+    "categories": ["BBB_description"],
+    "complexity": "Hard",
+    "link": "BBB_description"
+  },
+  {
+    "title": "not_description1",
+    "description": "description1",
+    "categories": ["not_description1"],
+    "complexity": "Hard",
+    "link": "not_description1"
+  },
+  {
+    "title": "xxxx",
+    "description": "description1",
+    "categories": ["xxx"],
+    "complexity": "Hard",
+    "link": "xxx"
+  }
+
+]
