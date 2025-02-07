@@ -9,7 +9,7 @@ import {
   findQuestionByComplexity as _findQuestionByComplexity,
   findQuestionByCategory as _findQuestionByCategory,
   findQuestionById as _findQuestionById,
-  findQuestionByTerm as _findQuestionByTerm,
+  findQuestionByText as _findQuestionByText,
   updateQuestionById as _updateQuestionById,
   deleteQuestionById as _deleteQuestionById
 } from "../model/repository.js";
@@ -37,10 +37,10 @@ export async function createQuestion(req, res) {
     }
 }
 
-export async function findQuestionByTerm(req, res) {
+export async function findQuestionByText(req, res) {
     try {
-        const term = req.params.term;
-        const questions = await _findQuestionByTerm(term)
+        const text = req.params.text;
+        const questions = await _findQuestionByText(text)
         return res.status(200).json({ message: `Success`, data: questions.map(formatQuestionResponse) });
     }
     catch (err) {

@@ -4,7 +4,7 @@ import {
   createQuestion,
   deleteQuestion,
   getAllQuestions,
-  findQuestionByTerm,
+  findQuestionByText as findQuestionByText,
   findQuestionById,
   findQuestionByDescription,
   findQuestionByComplexity,
@@ -18,7 +18,7 @@ const router = express.Router();
 
 router.get("/", verifyAccessToken, getAllQuestions);
 
-router.get("/any/:term", verifyAccessToken, findQuestionByTerm);
+router.get("/text/:text", verifyAccessToken, findQuestionByText);
 
 router.get("/id/:id", verifyAccessToken, findQuestionById);
 

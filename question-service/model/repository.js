@@ -19,20 +19,13 @@ export async function getQuestions(){
     return QuestionModel.find()
 }
 
-export async function findQuestionByTerm(term){
-    return QuestionModel.find({
-        $or:[
-            { title: { $regex: term, $options: "i" }},
-            { description: { $regex: term, $options: "i"}},
-            { complexity: { $regex: term, $options: "i" }},
-            { categories: { $regex: term, $options: "i" }},
-            { link: { $regex: term, $options: "i" }}
-        ]
-    });
+export async function findQuestionByText(text){
+    // use text-based compound index search via the $text query
+    return QuestionModel.find({ $text: { $search: text } });
 }
 
 export async function findQuestionByLikeTitle(title) {
-    return QuestionModel.find({ title: { $regex: "list", $options: "i" }});
+    return QuestionModel.find({ title: { $regex: title, $options: "i" }});
 }
 
 export async function findQuestionByExactTitle(title) {
@@ -44,6 +37,7 @@ export async function findQuestionByDescription(description) {
 }
 
 export async function findQuestionByComplexity(complexity) {
+    complexity = complexity.charAt(0).toUpperCase() + complexity.slice(1);
     return QuestionModel.find({ complexity });
 }
 

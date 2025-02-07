@@ -14,8 +14,8 @@ const QuestionModelSchema = new Schema({
     },
     complexity: {
         type: String,
-        enum : ['easy','medium','hard'],
-        required: true
+        enum : ['Easy','Medium','Hard'],
+        required: true,
     },
     categories: {
         type: [String],
@@ -25,15 +25,32 @@ const QuestionModelSchema = new Schema({
             ref: "Topic"
         }],
         */
-        required: true
+        required: true,
     },
     link:{
-        type: String
+        type: String,
     },
     createdAt: {
         type: Date,
         default: Date.now, // Setting default to the current date/time
+    },
+});
+
+QuestionModelSchema.index(
+    {
+        name: 'text',
+        description: 'text',
+        complexity: 'text',
+        categories: 'text',
+        link: 'text'
     }
+);
+
+QuestionModelSchema.pre('save', function(next) {
+    if (this.complexity && this.complexity.length > 0) {
+    this.complexity = this.complexity.charAt(0).toUpperCase() + this.complexity.slice(1);
+    }
+    next();
 });
 
 export default mongoose.model("QuestionModel", QuestionModelSchema);

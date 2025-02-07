@@ -138,5 +138,48 @@
     "categories": ["Databases"],
     "complexity": "Hard",
     "link": "https://leetcode.com/problems/trips-and-users/"
+  },
+  {
+    "title": "AAA_title only search",
+    "description": "AAA_title",
+    "categories": ["AAA_title"],
+    "complexity": "Hard",
+    "link": "AAA_title"
+  },
+  {
+    "title": "BBB_description only search",
+    "description": "BBB_description",
+    "categories": ["Databases"],
+    "complexity": "Hard",
+    "link": "https://leetcode.com/problems/trips-and-users/"
+  },
+  {
+    "title": "AAA_title_not_match",
+    "description": "AAA_title",
+    "categories": ["AAA_title"],
+    "complexity": "Hard",
+    "link": "AAA_title"
+  },
+  {
+    "title": "BBB_description_not_match",
+    "description": "AAA_title",
+    "categories": ["BBB_description"],
+    "complexity": "Hard",
+    "link": "BBB_description"
+  },
+  {
+    "title": "not_description1",
+    "description": "description1",
+    "categories": ["not_description1"],
+    "complexity": "Hard",
+    "link": "not_description1"
+  },
+  {
+    "title": "xxxx",
+    "description": "description1",
+    "categories": ["xxx"],
+    "complexity": "Hard",
+    "link": "xxx"
   }
+
 ]
