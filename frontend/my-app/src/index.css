@@ -5,10 +5,6 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-image: url('/public/ocean-bg.jpg');
-  background-size: cover;
-  background-position: top;
-  background-repeat: no-repeat;
 }
 
 code {
