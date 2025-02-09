@@ -179,9 +179,9 @@ export async function deleteQuestion(req, res) {
 
 export function formatQuestionResponse(question) {
     let description = question.description
-    if(description){
-        description = description.length > 30 ? description.slice(0, 40) + "..." : description;
-    }
+    // if(description){
+    //     description = description.length > 30 ? description.slice(0, 40) + "..." : description;
+    // }
     
     return {
         id: question.id,
