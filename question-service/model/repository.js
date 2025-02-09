@@ -29,7 +29,7 @@ export async function findQuestionByLikeTitle(title) {
 }
 
 export async function findQuestionByExactTitle(title) {
-    return QuestionModel.findOne({ title });
+    return QuestionModel.findOne({ title: {$regex: title, $options: 'i'} });
 }
 
 export async function findQuestionByDescription(description) {
