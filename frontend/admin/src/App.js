@@ -15,7 +15,7 @@ function Home() {
   // Fetch all questions
   const fetchQuestion = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/questions');
+      const response = await axios.get('http://localhost:3002/questions');
       console.log("response.data: ", response.data);
       setQuestions(response.data.data);
     } catch (error) {
@@ -26,7 +26,7 @@ function Home() {
 
 
   useEffect(() => {
-    axios.get('http://localhost:3001/questions')
+    axios.get('http://localhost:3002/questions')
       .then(response => {
         setQuestions(response.data.data);  // Set items in state
       })
@@ -46,12 +46,12 @@ function Home() {
     try {
       if (editingQuestions) {
         // Update question
-        await axios.put(`http://localhost:3001/questions/${editingQuestions}`, newQuestion);
+        await axios.put(`http://localhost:3002/questions/${editingQuestions}`, newQuestion);
         alert('Questions updated successfully!');
       } 
       else {
         // Create new question
-        await axios.post('http://localhost:3001/questions', newQuestion);
+        await axios.post('http://localhost:3002/questions', newQuestion);
         alert('Question created successfully!');
       } 
       
@@ -81,7 +81,7 @@ function Home() {
   // Delete question
   const handleDelete = async (questionId) => {
     try {
-      await axios.delete(`http://localhost:3001/questions/${questionId}`);
+      await axios.delete(`http://localhost:3002/questions/${questionId}`);
       alert('User deleted successfully!');
       fetchQuestion();
     } catch (error) {
@@ -92,7 +92,7 @@ function Home() {
   // fetch title
   const handlefetch = async () => {
     try {
-      await axios.get(`http://localhost:3001/questions/`);
+      await axios.get(`http://localhost:3002/questions/`);
       alert('All questions fetched successfully!');
       fetchQuestion();
     } catch (error) {
