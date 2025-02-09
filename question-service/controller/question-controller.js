@@ -184,7 +184,7 @@ export function formatQuestionResponse(question) {
     // }
     
     return {
-        id: question.id,
+        _id: question.id,
         title: question.title,
         description: description,
         complexity: question.complexity,
