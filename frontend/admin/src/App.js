@@ -16,7 +16,7 @@ function Home() {
   const fetchQuestion = async () => {
     try {
       const response = await axios.get('http://localhost:3002/questions');
-      setQuestions(response.data);
+      setQuestions(response.data.data);
     } catch (error) {
       console.error("Error fetching questions", error);
     }
@@ -27,7 +27,7 @@ function Home() {
   useEffect(() => {
     axios.get('http://localhost:3002/questions')
       .then(response => {
-        setQuestions(response.data);  // Set items in state
+        setQuestions(response.data.data);  // Set items in state
       })
       .catch(error => {
         console.error("There was an error fetching the items:", error);
