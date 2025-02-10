@@ -19,9 +19,22 @@ export async function getQuestions(){
     return QuestionModel.find()
 }
 
+export async function getAllCategories(){
+    return QuestionModel.distinct("categories");
+}
+
 export async function findQuestionByText(text){
     // use text-based compound index search via the $text query
     return QuestionModel.find({ $text: { $search: text } });
+}
+
+export async function findQuestionByFilter(input){
+    return QuestionModel.find({
+        $and: [
+            { categories: { $in: [ input.category ]} },
+            { complexity: input.complexity }
+        ]
+    });
 }
 
 export async function findQuestionByLikeTitle(title) {

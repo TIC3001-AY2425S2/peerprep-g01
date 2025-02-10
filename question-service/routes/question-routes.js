@@ -3,20 +3,22 @@ import express from "express";
 import {
   createQuestion,
   deleteQuestion,
-  getAllQuestions,
+  getQuestions,
   findQuestionByText as findQuestionByText,
   findQuestionById,
   findQuestionByDescription,
   findQuestionByComplexity,
   findQuestionByTitle,
   findQuestionByCategory,
-  updateQuestion
+  updateQuestion,
+  getAllCategories,
+  
 } from "../controller/question-controller.js";
 import { verifyAccessToken, verifyIsAdmin } from "../middleware/basic-access-control.js";
 
 const router = express.Router();
 
-router.get("/", verifyAccessToken, getAllQuestions);
+router.get("/", verifyAccessToken, getQuestions);
 
 router.get("/text/:text", verifyAccessToken, findQuestionByText);
 
@@ -27,6 +29,8 @@ router.get("/description/:description", verifyAccessToken, findQuestionByDescrip
 router.get("/category/:category", verifyAccessToken, findQuestionByCategory);
 
 router.get("/complexity/:complexity", verifyAccessToken, findQuestionByComplexity);
+
+router.get("/category", verifyAccessToken, getAllCategories);
 
 router.get("/title/:title", verifyAccessToken, findQuestionByTitle);
 
