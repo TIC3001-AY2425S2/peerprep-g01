@@ -2,11 +2,14 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 const MatchPage = () => {
-  const [questions, setQuestions] = useState([]);
+  const [allQuestions, setAllQuestions] = useState([]);
+  const [filteredQuestions, setFilteredQuestions] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [complexities, setComplexities] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedComplexity, setSelectedComplexity] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+
 
   useEffect(() => {
     // Fetch available categories
@@ -16,8 +19,8 @@ const MatchPage = () => {
         if (!response.ok) {
           throw new Error("Failed to fetch categories");
         }
-        const categoriesData = await response.json();
-        setCategories(categoriesData.data);
+        const data = await response.json();
+        setCategories(data.data);
       } catch (error) {
         console.error("Error fetching categories:", error);
       }
@@ -26,41 +29,64 @@ const MatchPage = () => {
     fetchCategories();
   }, []);
 
+  // useEffect(() => {
+  //   // Fetch questions only when both filters are selected
+  //   if (!selectedCategory || !selectedComplexity) return;
+
+  //   const fetchQuestions = async () => {
+  //     try {
+  //       const response = await fetch(
+  //         `http://localhost:3002/questions/?category=${selectedCategory}&complexity=${selectedComplexity}`
+  //       );
+
+  //       if (!response.ok) {
+  //         throw new Error("Failed to fetch questions");
+  //       }
+
+  //       const data = await response.json();
+  //       setQuestions(data.data);
+  //     } catch (error) {
+  //       console.error("Error fetching questions:", error);
+  //     }
+  //   };
+
+  //   fetchQuestions();
+  // }, [selectedCategory, selectedComplexity]);
+
   useEffect(() => {
-    // Fetch questions only when both filters are selected
-    if (!selectedCategory || !selectedComplexity) return;
+    if (!selectedCategory) return;
 
-    const fetchQuestions = async () => {
+    const fetchQuestionsByCategory = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:3002/questions/?category=${selectedCategory}&complexity=${selectedComplexity}`
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch questions");
-        }
+        const response = await fetch(`http://localhost:3002/questions/category/${selectedCategory}`);
+        if (!response.ok) throw new Error("Failed to fetch questions");
 
         const data = await response.json();
-        setQuestions(data.data);
+        setAllQuestions(data.data);
+
+        // Extract unique complexity levels
+        const uniqueComplexities = Array.from(new Set(data.data.map(q => q.complexity)));
+        setComplexities(uniqueComplexities);
+        setSelectedComplexity(""); // Reset complexity selection when category changes
       } catch (error) {
         console.error("Error fetching questions:", error);
       }
     };
 
-    fetchQuestions();
-  }, [selectedCategory, selectedComplexity]);
+    fetchQuestionsByCategory();
+  }, [selectedCategory]);
 
-  const handleMatchFilteredQuestions = () => {
-    // Placeholder for backend match logic
-    console.log("Matching filtered questions...");
-    // Logic to match selected question
-    setSelectedQuestion(questions[0]);  // Example: Match the first question in the list
-  };
+  useEffect(() => {
+    if (selectedComplexity) {
+      const filtered = allQuestions.filter((q) => q.complexity === selectedComplexity);
+      setFilteredQuestions(filtered);
+    }
+  }, [selectedComplexity, allQuestions]);
 
   const handleMatchRandomQuestion = () => {
     // Placeholder for backend match logic
     console.log("Matching a random question...");
-    const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+    const randomQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
     setSelectedQuestion(randomQuestion);  // Match a random question
   };
 
@@ -86,31 +112,33 @@ const MatchPage = () => {
           ))}
         </select>
 
-        {/* Complexity Dropdown */}
-        <select
+         {/* Complexity Dropdown (Dynamically updated) */}
+         <select
           value={selectedComplexity}
           onChange={(e) => setSelectedComplexity(e.target.value)}
           className="border p-2"
+          disabled={!complexities.length}
         >
           <option value="">Select Complexity</option>
-          <option value="Easy">Easy</option>
-          <option value="Medium">Medium</option>
-          <option value="Hard">Hard</option>
+          {complexities.map((complexity, index) => (
+            <option key={index} value={complexity}>{complexity}</option>
+          ))}
         </select>
       </div>
 
       {/* Buttons */}
-      <div className="mb-4">
-        <button
-          onClick={handleMatchRandomQuestion}
-          className="bg-green-500 text-white p-2 rounded"
-        >
-          Match a Random Question in the List
-        </button>
-      </div>
+        {/* Match Random Question Button (only visible when both filters are selected) */}
+        {selectedCategory && selectedComplexity && (
+          <button
+            onClick={handleMatchRandomQuestion}
+            className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600"
+          >
+            Match a Random Question in the List
+          </button>
+        )}
 
       {/* Question Table (only show if questions are available) */}
-      {questions.length > 0 ? (
+      {selectedCategory && selectedComplexity && filteredQuestions.length > 0 && (
         <table className="w-full border-collapse border border-gray-300">
           <thead>
             <tr className="bg-gray-100">
@@ -122,7 +150,7 @@ const MatchPage = () => {
             </tr>
           </thead>
           <tbody>
-            {questions.map((q, index) => (
+            {filteredQuestions.map((q, index) => (
               <tr key={index} className="border">
                 <td className="border p-2">{q.title}</td>
                 <td className="border p-2">{q.description}</td>
@@ -143,8 +171,6 @@ const MatchPage = () => {
             ))}
           </tbody>
         </table>
-      ) : (
-        selectedCategory && selectedComplexity && <p>No questions found.</p>
       )}
 
       {/* Selected Question Display (optional) */}
