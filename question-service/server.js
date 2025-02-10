@@ -24,7 +24,7 @@ const bodyParser = require("body-parser");
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 
 // Middleware
@@ -110,7 +110,7 @@ app.delete("/questions/:id", async (req, res) => {
 });
 
 // Start server
-app.listen(3001, () => {
-  console.log("Server running on port 3001");
+app.listen(3002, () => {
+  console.log("Server running on port 3002");
 });
 
