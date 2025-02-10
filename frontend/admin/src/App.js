@@ -27,7 +27,7 @@ function Home() {
   useEffect(() => {
     axios.get('http://localhost:3002/questions')
       .then(response => {
-        setQuestions(response.data.data);  // Set items in state
+        setQuestions(response.data);  // Set items in state
       })
       .catch(error => {
         console.error("There was an error fetching the items:", error);
