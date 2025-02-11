@@ -1,7 +1,7 @@
-
-// frontend/src/App.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import styled from "styled-components";
+
 
 function Home() {
   const [title, setTitle] = useState('');
@@ -11,6 +11,66 @@ function Home() {
   const [link, setLink] = useState('');
   const [questions, setQuestions] = useState([]);
   const [editingQuestions, setEditingQuestionId] = useState(null);
+
+
+
+  // Create a styled button component
+  const BlueButton = styled.button`
+    background-color: blue;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: darkblue;
+    }
+  `;
+
+  const GreenButton = styled.button`
+  background-color: green;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+
+    &:hover {
+      background-color: darkgreen;
+    }
+`;
+
+  const RedButton = styled.button`
+    background-color: red;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: darkred;
+    }
+  `;
+
+  const GreyButton = styled.button`
+    background-color: grey;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: darkgrey;
+  }
+`;
+
 
   // Fetch all questions
   const fetchQuestion = async () => {
@@ -45,7 +105,7 @@ function Home() {
     try {
       if (editingQuestions) {
         // Update question
-        await axios.put(`http://localhost:3002/questions/${editingQuestions}`, newQuestion);
+        await axios.patch(`http://localhost:3002/questions/${editingQuestions}`, newQuestion);
         alert('Questions updated successfully!');
       } 
       else {
@@ -103,11 +163,11 @@ function Home() {
     <div className="Home">
       <h1>Question Service</h1>
 
-      <button onClick={() => handlefetch()}>Get All Questions</button>
+      <GreyButton onClick={() => handlefetch()}>Get All Questions</GreyButton>
 
       {/* Question Form */}
       <form onSubmit={handleSubmit}>
-        <table border={'1'} style={{ width: '100%', position: "relative" }} >
+        <table border={'1'} style={{ width: '100%', position: "relative", borderCollapse: "collapse", backgroundColor: 'lightblue'}} >
             <tbody>
                 <tr>
                     <td width={'20%'}><b>Title</b></td>
@@ -130,7 +190,13 @@ function Home() {
                 <tr>
                     <td><b>Complexity</b></td>
                     <td>
-                        <input type="text" value={complexity} onChange={(e) => setComplexity(e.target.value)} required />
+                        {/* <input type="text" value={complexity} onChange={(e) => setComplexity(e.target.value)} required /> */}
+                        <select value={complexity} onChange={(e) => setComplexity(e.target.value)} required>
+                          <option value="">--Choose an option--</option>
+                          <option value="Easy">Easy</option>
+                          <option value="Medium">Medium</option>
+                          <option value="Hard">Hard</option>
+                        </select>
                     </td>
                 </tr>
                 <tr>
@@ -141,18 +207,23 @@ function Home() {
                 </tr>
                 <tr>
                     <td colSpan={'2'} style={{ textAlign: 'left' }}>
-                        <button type="submit">{editingQuestions ? 'Update Question' : 'Create Question'}</button>
+                        {/* <button type="submit">{editingQuestions ? 'Update Question' : 'Create Question'}</button> */}
+                        <GreenButton type="submit">{editingQuestions ? 'Update Question' : 'Create Question'}</GreenButton>
                     </td>
                 </tr>
             </tbody>
         </table>
       </form>
 
-
       <h2>Questions List</h2>
       <ul>
         {questions.map((question, index) => (
-          <table border={'1'} key={question._id}>
+          <table border={'1'} key={question._id}       
+            style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            backgroundColor: "#f2f2f2", 
+          }} >
             <tbody>
               {/* Display item number and _id */}
               Question: {index + 1}
@@ -183,8 +254,8 @@ function Home() {
               <p>{question.categories}</p> */}
               {/* <p>{question.complexity}</p> */}
               <td colSpan={'2'} style={{ textAlign: 'left' }}>
-                <button onClick={() => handleEdit(question)}>Edit</button>
-                <button onClick={() => handleDelete(question._id)}>Delete</button>
+                <BlueButton onClick={() => handleEdit(question)}>Edit</BlueButton>
+                <RedButton onClick={() => handleDelete(question._id)}>Delete</RedButton>
               </td>
             </tbody>
           </table>
