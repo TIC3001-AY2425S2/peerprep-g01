@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { fetchWithAuth } from './fetchHelper'; // Import the helper function
+
 
 const MatchPage = () => {
   const [allQuestions, setAllQuestions] = useState([]);
@@ -10,71 +12,73 @@ const MatchPage = () => {
   const [selectedComplexity, setSelectedComplexity] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
 
+  const jwtToken = () => localStorage.getItem("token");
 
-  useEffect(() => {
-    // Fetch available categories
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch("http://localhost:3002/questions/category");
-        if (!response.ok) {
-          throw new Error("Failed to fetch categories");
-        }
-        const data = await response.json();
-        setCategories(data.data);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      }
-    };
-
-    fetchCategories();
-  }, []);
-
+  
+  
   // useEffect(() => {
-  //   // Fetch questions only when both filters are selected
-  //   if (!selectedCategory || !selectedComplexity) return;
-
-  //   const fetchQuestions = async () => {
+  //   // Fetch available categories
+  //   const fetchCategories = async () => {
   //     try {
-  //       const response = await fetch(
-  //         `http://localhost:3002/questions/?category=${selectedCategory}&complexity=${selectedComplexity}`
-  //       );
-
+  //       const response = await fetch("http://localhost:3002/questions/category", );
   //       if (!response.ok) {
-  //         throw new Error("Failed to fetch questions");
+  //         throw new Error("Failed to fetch categories");
   //       }
-
   //       const data = await response.json();
-  //       setQuestions(data.data);
+  //       setCategories(data.data);
   //     } catch (error) {
-  //       console.error("Error fetching questions:", error);
+  //       console.error("Error fetching categories:", error);
   //     }
   //   };
 
-  //   fetchQuestions();
-  // }, [selectedCategory, selectedComplexity]);
+  //   fetchCategories();
+  // }, []);
+
+  useEffect(() => {
+    // Use the helper function to make a fetch request with Authorization header
+    fetchWithAuth('http://localhost:3002/questions/category')
+      .then((responseData) => {
+        setCategories(responseData.data);
+      })
+      .catch(() => {
+        console.error('Error fetching categories');
+      });
+  }, []);
 
   useEffect(() => {
     if (!selectedCategory) return;
-
-    const fetchQuestionsByCategory = async () => {
-      try {
-        const response = await fetch(`http://localhost:3002/questions/category/${selectedCategory}`);
-        if (!response.ok) throw new Error("Failed to fetch questions");
-
-        const data = await response.json();
-        setAllQuestions(data.data);
-
-        // Extract unique complexity levels
-        const uniqueComplexities = Array.from(new Set(data.data.map(q => q.complexity)));
+    fetchWithAuth(`http://localhost:3002/questions/category/${selectedCategory}`)
+      .then((responseData) => {
+        setAllQuestions(responseData.data);
+        const uniqueComplexities = Array.from(new Set(responseData.data.map(q => q.complexity)));
         setComplexities(uniqueComplexities);
         setSelectedComplexity(""); // Reset complexity selection when category changes
-      } catch (error) {
-        console.error("Error fetching questions:", error);
-      }
-    };
+      })
+      .catch(() => {
+        console.error("Error fetching questions");
+      })
+    }, [selectedCategory]);
 
-    fetchQuestionsByCategory();
-  }, [selectedCategory]);
+    // if (!selectedCategory) return;
+    // const fetchQuestionsByCategory = async () => {
+    //   try {
+    //     const response = await fetch(`http://localhost:3002/questions/category/${selectedCategory}`);
+    //     if (!response.ok) throw new Error("Failed to fetch questions");
+
+    //     const data = await response.json();
+    //     setAllQuestions(data.data);
+
+    //     // Extract unique complexity levels
+    //     const uniqueComplexities = Array.from(new Set(data.data.map(q => q.complexity)));
+    //     setComplexities(uniqueComplexities);
+    //     setSelectedComplexity(""); // Reset complexity selection when category changes
+    //   } catch (error) {
+    //     console.error("Error fetching questions:", error);
+    //   }
+    // };
+
+    // fetchQuestionsByCategory();
+  // }, [selectedCategory]);
 
   useEffect(() => {
     if (selectedComplexity) {
@@ -87,7 +91,17 @@ const MatchPage = () => {
     // Placeholder for backend match logic
     console.log("Matching a random question...");
     const randomQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
-    setSelectedQuestion(randomQuestion);  // Match a random question
+    //setSelectedQuestion(randomQuestion);  // Match a random question
+    const { categories, complexity } = randomQuestion;
+    const questionData = { categories, complexity };
+    const channelName = btoa(JSON.stringify(questionData));
+    fetchWithAuth(`http://localhost:3003/match/findMatch/${channelName}`)
+      .then((responseData) => {
+        window.alert("matched");
+      })
+      .catch(() => {
+        console.error("Error matching random question");
+      })
   };
 
   const handleSelectQuestion = (question) => {
