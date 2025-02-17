@@ -11,28 +11,10 @@ const MatchPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedComplexity, setSelectedComplexity] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const [message, setMessage] = useState("");
+  const [showMessage, setShowMessage] = useState(false);
 
   const jwtToken = () => localStorage.getItem("token");
-
-  
-  
-  // useEffect(() => {
-  //   // Fetch available categories
-  //   const fetchCategories = async () => {
-  //     try {
-  //       const response = await fetch("http://localhost:3002/questions/category", );
-  //       if (!response.ok) {
-  //         throw new Error("Failed to fetch categories");
-  //       }
-  //       const data = await response.json();
-  //       setCategories(data.data);
-  //     } catch (error) {
-  //       console.error("Error fetching categories:", error);
-  //     }
-  //   };
-
-  //   fetchCategories();
-  // }, []);
 
   useEffect(() => {
     // Use the helper function to make a fetch request with Authorization header
@@ -59,27 +41,6 @@ const MatchPage = () => {
       })
     }, [selectedCategory]);
 
-    // if (!selectedCategory) return;
-    // const fetchQuestionsByCategory = async () => {
-    //   try {
-    //     const response = await fetch(`http://localhost:3002/questions/category/${selectedCategory}`);
-    //     if (!response.ok) throw new Error("Failed to fetch questions");
-
-    //     const data = await response.json();
-    //     setAllQuestions(data.data);
-
-    //     // Extract unique complexity levels
-    //     const uniqueComplexities = Array.from(new Set(data.data.map(q => q.complexity)));
-    //     setComplexities(uniqueComplexities);
-    //     setSelectedComplexity(""); // Reset complexity selection when category changes
-    //   } catch (error) {
-    //     console.error("Error fetching questions:", error);
-    //   }
-    // };
-
-    // fetchQuestionsByCategory();
-  // }, [selectedCategory]);
-
   useEffect(() => {
     if (selectedComplexity) {
       const filtered = allQuestions.filter((q) => q.complexity === selectedComplexity);
@@ -91,13 +52,21 @@ const MatchPage = () => {
     // Placeholder for backend match logic
     console.log("Matching a random question...");
     const randomQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
-    //setSelectedQuestion(randomQuestion);  // Match a random question
+    setSelectedQuestion(randomQuestion);  // Match a random question
     const { categories, complexity } = randomQuestion;
     const questionData = { categories, complexity };
     const channelName = btoa(JSON.stringify(questionData));
     fetchWithAuth(`http://localhost:3003/match/findMatch/${channelName}`)
       .then((responseData) => {
-        window.alert("matched");
+        // if(responseData){
+        //   fetchWithAuth(`http://localhost:3003/match/findMatch/${channelName}`, {
+        //     method: "POST",
+        //     headers: {
+        //       "Content-Type": "application/json",
+        //     },
+        //     body: JSON.stringify({ username: "JohnDoe", password: "123456" }),
+        //   })
+        
       })
       .catch(() => {
         console.error("Error matching random question");

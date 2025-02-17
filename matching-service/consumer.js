@@ -1,5 +1,5 @@
 // Require the amqplib package to interact with RabbitMQ
-const amqp = require("amqplib");
+import amqp from "amqplib";
 
 // Immediately-invoked Function Expression (IIFE) to use async-await at the top level
 (async () => {
