@@ -2,7 +2,10 @@ import Header from './Header'
 import Footer from './Footer'
 import Home from '../pages/Home'
 import Contact from '../pages/Contact'
+import Login from '../pages/Login'
+import SignUp from '../pages/SignUp'
 import ProductDetails from '../pages/ProductDetails'
+import QuestionService from '../pages/QuestionService'
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 //import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom'
 
@@ -23,9 +26,11 @@ export default function Router() {
                 <Routes>
                 <Route path="/" element={<Layout />}>
                     <Route path="/" element={<Home />} />
-                    <Route path="contact-us" element={<Contact />} />
-                    <Route path="product" element={<ProductDetails />} />
-                    <Route path="product/:id" element={<ProductDetails />} />
+                    {/* <Route path="contact-us" element={<Contact />} /> */}
+                   
+                    <Route path="QuestionService" element={<QuestionService />} />
+                    <Route path="login" element={<Login />} />
+                    <Route path="SignUp" element={<SignUp />} />
                 </Route>
                 </Routes>
             </BrowserRouter>
