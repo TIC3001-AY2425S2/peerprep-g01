@@ -28,10 +28,7 @@ export async function createQuestion(req, res) {
             return res.status(409).json({ message: "Question title already exists" });
         }
         const createdQuestion = await _createQuestion(title_trim, description, complexity, categories, link);
-        return res.status(201).json({
-            message: `Success`,
-            data: formatQuestionResponse(createdQuestion),
-        });
+        return res.status(201).json({message: `Success`, data: formatQuestionResponse(createdQuestion)});
     } 
     catch (err) {
         console.error(err);

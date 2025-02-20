@@ -1,36 +1,107 @@
 // Import the amqplib package to interact with RabbitMQ
 //const amqp = require("amqplib");
 import amqp from "amqplib";
-import { consumeMessage, messageEvent } from "../match-consumer.js";
-import { EventEmitter } from "events";
-//import messageEvent from "../match-consumer.js";
+import { WebSocketServer } from "ws";
+import jwt from "jsonwebtoken";
+import { randomUUID } from "crypto";
+import { match } from "assert";
 
+
+const connection = await amqp.connect("amqp://localhost");
+const queueChannelMap = new Map(); // maps queue to channel
+
+let matches = [];
+let uuidJwtMap = new Map();
+
+
+class Match {
+  constructor(p1Ticket, p1Ws) {
+    this.p1Ticket = p1Ticket;
+    this.p1Ws = p1Ws;
+    this.p2Ticket;
+    this.p2Ws;
+  }
+}
+
+const wsMiddleWare = (ws, req, next) => {
+  try {
+    const authTicket = "";
+    next(); // Proceed to next handler
+  }
+  catch (err) {
+    console.error(err);
+    ws.close(); // Close connection if authentication fails
+  }
+};
+
+const wss = new WebSocketServer({ port: 8080 });
+
+wss.on('connection', (ws, req) => {
+  console.log('new client connected');
+  ws.on("message", (message) => {
+    const matchData = message.toString();
+    console.log("Received:", matchData);
+    const { ticket, category, complexity } = JSON.parse(matchData);
+    if (!uuidJwtMap[ticket]){
+      ws.close(1000, "Unauthorized");
+    }
+    for (let match of matches) {
+      // matched own room. Ignore
+      if(match.p1Ticket === ticket){
+        continue;
+      }
+      match.p2Ticket = ticket;
+      match.p2Ws = ws;
+      match.p1Ws.send('')
+    }
+
+    let match = new Match(ticket, ws);
+    matches.push(match);
+    ws.send('Registered match');
+  });
+
+  // Echo back the message to the client
+  // ws.send(`Echo: ${message}`);
+
+  ws.on('close', () => {
+    console.log('Client disconnected');
+  });
+
+  ws.on('error', error => {
+    console.error('WebSocket error:', error);
+  });
+
+  // Send a welcome message to the client upon connection
+  ws.send('match-service websocket success');
+
+});
+
+export async function getTicket(req, res) {
+  try{
+    let uuid = randomUUID();
+    uuidJwtMap[uuid] = req.user.id;
+    uuidJwtMap['aaa'] = req.user.id;
+    return res.status(200).json({ message: 'Success', data: uuid });
+  }
+  catch (err){
+    console.error(err);
+    return res.status(500).json({ message: "Error matching. Please try again" });
+  }
+}
 
 export async function createMatch(req, res) {
   // try {
 
-  //     // type of questions. E.g., algorithms category, hard difficulty
-  //     const questionType = req.body.type;
-
-  //     // the user that sends the message
-  //     const user = req.body.user;
+  //     const {id, username, email} = req.user;
+  //     const attribute = [ req.body.category, req.body.complexity ];
+  //     const queue = attribute.join("_");  
+  //     await handleChannelAssignment(queue);
     
-  //     // Assert a queue exists (or create it if it doesn't)      
-  //     const messageQueue = Object.entries(questionType).map(([key, value]) => `${key}_${value}`).join("_");
-  //     await channel.assertQueue(messageQueue);
-    
-  //     // Connect to RabbitMQ server
-  //     const connection = await amqp.connect("amqp://localhost");
-  //     const channel = await connection.createChannel();
-    
+  //     let channel = queueChannelMap.get(queue);   
   //     // Send the message to the queue named "message_queue". Messages are sent as a buffer
-  //     channel.sendToQueue(messageQueue, Buffer.from(user));
-    
-  //     // Close the channel and the connection to clean up resources
-  //     await channel.close();
-  //     await connection.close();
-    
-  //     return res.status(200).json( { message: "Success" });
+  //     const user = JSON.stringify({id, username, email});
+  //     channel.sendToQueue(queue, Buffer.from(user));
+  //     return res.status(200).json( { message: "Success", data: 'Created match' });
   // } 
   // catch (err) {
   //     console.error(err);
@@ -38,69 +109,69 @@ export async function createMatch(req, res) {
   // }
 }
 
-export async function findMatch(req,res){
-  // try{
-  //   // type of questions. E.g., algorithms category, hard difficulty
-  //   const matchChannel = req.params.matchChannel
-
-  //   // the user that sends the message
-  //   const authHeader = req.headers["authorization"];
-  //   if (!authHeader){
-  //     console.error("No auth header");
-  //     return res.status(500).json({message: "Error matching"});
-  //   }
-
-  //   // Create a connection to the local RabbitMQ server
-  //   const connection = await amqp.connect("amqp://localhost");
-  //   const channel = await connection.createChannel();
-
-  //   // Assert a queue exists (or create it if it doesn't) named "message_queue"
-  //   // const messageQueue = Object.entries(questionType).map(([key, value]) => `${key}_${value}`).join("_");
-  //   await channel.assertQueue(matchChannel);
-
-  //   // Start consuming messages from the queue "message_queue"
-  //   channel.consume(matchChannel, (message) => {
-  //     if (message){
-  //       console.log("Received message:", message.content.toString());
-  //       channel.ack(message); // Acknowledge the message so RabbitMQ knows it has been processed
-  //       channel.close();
-  //       return res.status(200).json({ message: "Success", data: message.content.toString()});
-  //     }
-  //   }, {noAck: false});
-    
-  //   //return res.status(200).json({ message: "Success", data: "no message"});
-    
-
-  // }
-  // catch (err) {
-  //   console.error(err);
-  //   return res.status(500).json({ message: "Error matching" });
-  // }
-
+export async function findRandomMatch(req,res){
   try{
-    const timeout = 10000; // 30 seconds timeout
-    console.log("Match request received. Waiting for a match...");
-    const matchPromise = new Promise((resolve, reject) => {
-      const onMessageReceived = (message, ackCallback)  => {
-      resolve({ message, ackCallback });
-    };
+    const {id, username, email} = req.user;
+    const attribute = [ req.params.category, req.params.complexity ]; 
+    const queue = attribute.join("_");
 
-    // listen for event only once. Call onMessageReceived if there's event
-    messageEvent.once("newMessage", onMessageReceived);
-
-    consumeMessage("testQueue");
-
-    setTimeout(() => {
-      messageEvent.removeListener("newMessage", onMessageReceived);
-      reject(new Error("timeout"));
-    }, timeout);
-    });
-
-    const { message, ackCallback } = await matchPromise;
-    ackCallback();
-    return res.status(200).json({ message: "Match found", data: message});
+    await handleChannelAssignment(queue);
+    let channel = queueChannelMap.get(queue);
+    const message = await channel.get(queue, { noAck: false });
+    if (message) {
+      const content = message.content.toString();
+      console.log(`[${queue}] get received:`, content);
+      const partner_id = JSON.parse(content).id;
+      if (partner_id !== id){
+        channel.ack(message);
+        return res.status(200).json({ message: 'Success', data: content });
+      }
+      else{
+        channel.nack(message);
+        return res.status(200).json({ message: 'Success', data: "No match found" });
+      }
+      
+      // send request to collab-service API to create match
+    }
+  //   else{
+  //     const { consumerTag } = await channel.consume(queue, (message) => {
+  //       if (message) {
+  //           const content = message.content.toString();
+  //           console.log(`[${queue}] consume Received:`, content);
+  //           channel.ack(message);
+  //           // send request to collab-service API to create match
+  //           // Cancel the consumer after processing
+  //           clearTimeout(timeoutTimer);  // Clear the timeout if a message is received
+  //           channel.cancel(consumerTag);  // Cancel the consumer after timeout
+  //           return res.status(200).json({ message: 'Success', data: content });
+  //       }
+  //     }, { noAck: false });  
+  //     const timeoutTimer = setTimeout(async () => {
+  //       console.log('Timeout reached, cancelling consumer...');
+  //       try {
+  //           await channel.cancel(consumerTag);  // Cancel the consumer after timeout
+  //           return res.status(200).json({message: `Success`, data: 'No match found'})
+  //       } catch (err) {
+  //           return res.status(500).json({ message: 'server error' });
+  //       }
+  //   }, 10000);
+  // }
+    return res.status(200).json({message: `Success`, data: 'No match found'})
+}
+  catch (err){
+    console.error(err);
+    return res.status(500).json({ message: "Error matching. Please try again" });
   }
-  catch (err) {
-    res.status(204).end(); // 204 No Content (Timeout)
+}
+
+
+async function handleChannelAssignment(queue){
+  let channel = queueChannelMap.get(queue);
+  if (!channel) {
+    console.log(`Channel not exists for ${queue}. Creating...`);
+    channel = await connection.createChannel();
+    await channel.assertQueue(queue);
+    queueChannelMap.set(queue, channel);
+    console.log(`Created channel for ${queue}`);
   }
 }
