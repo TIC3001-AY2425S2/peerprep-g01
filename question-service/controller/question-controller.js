@@ -11,7 +11,9 @@ import {
   findQuestionById as _findQuestionById,
   findQuestionByText as _findQuestionByText,
   updateQuestionById as _updateQuestionById,
-  deleteQuestionById as _deleteQuestionById
+  deleteQuestionById as _deleteQuestionById,
+  getAllCategories as _getAllCategories,
+  findQuestionByFilter as _findQuestionByFilter
 } from "../model/repository.js";
 
 export async function createQuestion(req, res) {
@@ -115,14 +117,49 @@ export async function findQuestionByCategory(req, res) {
     }
 }
 
-export async function getAllQuestions(req, res) {
-    try {
-        const questions = await _getQuestions();
-        return res.status(200).json({ message: `Success`, data: questions.map(formatQuestionResponse) });
+export async function findQuestionByFilter(req, res){
+    try{
+        const category = req.query.category;
+        const complexity = req.query.complexity
     }
     catch (err) {
         console.error(err);
         return res.status(500).json({ message: err });
+    }
+}
+
+export async function getQuestions(req, res) {
+    try {
+        const { category, complexity } = req.query; // Extract query parameters
+        if (! (category && complexity)){
+            const questions = await _getQuestions();
+            return res.status(200).json({ message: `Success`, data: questions.map(formatQuestionResponse) });
+        }
+        else if (category && complexity) {
+            let filter = {}
+            filter.category = category;
+            filter.complexity = complexity;
+            const questions = await _findQuestionByFilter(filter);
+            return res.status(200).json({ message: `Success`, data: questions});
+        }       
+        else{
+            return res.status(404).json({ message: `No questions`})
+        }
+    }
+    catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: err });
+    }
+}
+
+export async function getAllCategories(req, res){
+    try{
+        const categories = await _getAllCategories();
+        return res.status(200).json({ message: `Success`, data: categories });
+    }
+    catch (err){
+        console.error(err)
+        return res.status(500).json({ message: "Error getting all categories" });
     }
 }
 
