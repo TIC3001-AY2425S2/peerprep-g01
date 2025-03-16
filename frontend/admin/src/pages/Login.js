@@ -29,7 +29,9 @@ const LoginPage = () => {
             const data = await response.json();
     
             if (!response.ok) {
-                console.error("Login failed:", data?.message || "Unknown error");
+                const err = data?.message || "Unknown error";
+                console.error("Login failed:", err);
+                alert(`Login failed: ${err}`);
                 return;
             }
     
