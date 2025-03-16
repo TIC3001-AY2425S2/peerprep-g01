@@ -23,3 +23,10 @@
 5. In the `question-service` directory, create a copy of the `.env.sample` file and name it `.env`.
 
 6. Update the `DB_CLOUD_URI` of the `.env` file, and paste the string we copied earlier in step 4. Also remember to replace the `<password>` placeholder with the actual password.
+
+7. Open the questions.json file and copy the contents
+
+9. Go to the questions database in MongoDB, and use the "Insert Document" feature to populate the questions database with sample questions
+     ![alt text](./GuideAssets/InsertDocument.png)
+   
+     ![alt text](./GuideAssets/PasteJson.png)
