@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { fetchWithAuth } from './fetchHelper'; // Import the helper function
+import { jwtDecode } from "jwt-decode";
 
 
 const MatchPage = () => {
@@ -15,7 +16,7 @@ const MatchPage = () => {
   const [message, setMessage] = useState("");
   const [showMessage, setShowMessage] = useState(false);
 
-  const jwtToken = () => localStorage.getItem("token");
+  const jwtToken = localStorage.getItem("token");
 
   useEffect(() => {
     // Use the helper function to make a fetch request with Authorization header
@@ -50,6 +51,7 @@ const MatchPage = () => {
   }, [selectedComplexity, allQuestions]);
 
   const handleMatchRandomQuestion = () => {
+    if (socket)
     // Placeholder for backend match logic
     console.log("Matching a random question...");
     const randomQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
@@ -60,7 +62,8 @@ const MatchPage = () => {
     fetchWithAuth(`http://localhost:3003/match/ticket`)
       .then((responseData) => {
         const ticket = responseData.data;
-        const matchData = JSON.stringify({ ticket, "category": categorySubmit, "complexity": complexitySubmit });
+        const jwtDecoded = jwtDecode(jwtToken);
+        const matchData = JSON.stringify({ ticket, "category": categorySubmit, "complexity": complexitySubmit, "id": jwtDecoded.id});
         const socket = new WebSocket("ws://localhost:8080") ;
         socket.onopen = () => {
           console.log("Connected");
@@ -68,6 +71,9 @@ const MatchPage = () => {
         }
         socket.onclose = () => console.log("Disconnected");
         socket.onerror = (error) => console.error("WebSocket Error:", error);
+        socket.onmessage = (event) => {
+          console.log(event.data);
+        }
         setWs(socket);
         return () => socket.close();
       })

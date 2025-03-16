@@ -1,20 +1,51 @@
-// Require the amqplib package to interact with RabbitMQ
-import amqp from "amqplib";
+const amqp = require('amqplib');
 
-// Immediately-invoked Function Expression (IIFE) to use async-await at the top level
-(async () => {
-  // Create a connection to the local RabbitMQ server
-  const connection = await amqp.connect("amqp://localhost");
-  const channel = await connection.createChannel();
+class MatchConsumer {
+    constructor(queueName, url = 'amqp://localhost') {
+        this.queueName = queueName;
+        this.url = url;
+        this.connection = null;
+        this.channel = null;
+    }
 
-  // Assert a queue exists (or create it if it doesn't) named "message_queue"
-  await channel.assertQueue("message_queue");
+    async connect() {
+        try {
+            this.connection = await amqp.connect(this.url);
+            this.channel = await this.connection.createChannel();
+            const replyQueue = await channel.assertQueue('', { exclusive: true, autoDelete: true });
+            console.log(`Connected to RabbitMQ and listening on queue: ${this.queueName}`);
+        } catch (error) {
+            console.error('Error connecting to RabbitMQ:', error);
+            process.exit(1);
+        }
+    }
 
-  // Start consuming messages from the queue "message_queue"
-  channel.consume("message_queue", (message) => {
-    console.log("Received message:", message.content.toString());
-    channel.ack(message); // Acknowledge the message so RabbitMQ knows it has been processed
-  });
+    async consumeMessage(callback) {
+        if (!this.channel) {
+            console.error('RabbitMQ channel not initialized.');
+            return;
+        }
 
-  console.log("Consumer waiting for messages...");
-})();
+        this.channel.consume(this.queueName, (msg) => {
+            if (msg) {
+                console.log(`Received message: ${msg.content.toString()}`);
+                callback(msg.content.toString());
+
+                // Acknowledge the message
+                this.channel.ack(msg);
+            }
+        });
+    }
+
+    async close() {
+        try {
+            await this.channel.close();
+            await this.connection.close();
+            console.log('RabbitMQ connection closed.');
+        } catch (error) {
+            console.error('Error closing RabbitMQ connection:', error);
+        }
+    }
+}
+
+module.exports = MatchConsumer;

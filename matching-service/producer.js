@@ -27,15 +27,25 @@ app.get("/send/:message", async (req, res) => {
   const connection = await amqp.connect("amqp://localhost"); // Create a connection to the local RabbitMQ server
   const channel = await connection.createChannel();
 
+  const queueName = 'common_queue';
   // Assert a queue exists (or create it if it doesn't) named "message_queue"
-  await channel.assertQueue("message_queue");
+  await channel.assertQueue(queueName);
 
   // Send the message to the queue named "message_queue". Messages are sent as a buffer
-  channel.sendToQueue("message_queue", Buffer.from(message));
+  const replyQueue = await channel.assertQueue('', { exclusive: true });
+  console.log('Generated reply queue name:' , replyQueue.queue);
+  
+  channel.sendToQueue(queueName, Buffer.from(message), {
+    replyTo: replyQueue.queue
+  });
 
   // Close the channel and the connection to clean up resources
-  await channel.close();
-  await connection.close();
+  //await channel.close();
+  //await connection.close();
+
+  channel.consume(replyQueue.queue, (message) => {
+    console.log("Received reply from replyTo: ", message.content.toString());
+  })
 
   // Send a response back to the client to indicate the message was sent
   res.send("Message sent to RabbitMQ");

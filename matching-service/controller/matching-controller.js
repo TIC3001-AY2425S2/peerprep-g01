@@ -10,9 +10,8 @@ import { match } from "assert";
 const connection = await amqp.connect("amqp://localhost");
 const queueChannelMap = new Map(); // maps queue to channel
 
-let matches = [];
-let uuidJwtMap = new Map();
-
+let userIdUuidMap = new Map();
+let matchGroupListMap = new Map();
 
 class Match {
   constructor(p1Ticket, p1Ws) {
@@ -41,23 +40,28 @@ wss.on('connection', (ws, req) => {
   ws.on("message", (message) => {
     const matchData = message.toString();
     console.log("Received:", matchData);
-    const { ticket, category, complexity } = JSON.parse(matchData);
-    if (!uuidJwtMap[ticket]){
-      ws.close(1000, "Unauthorized");
+    const { ticket, category, complexity, id } = JSON.parse(matchData);
+    const matchGroup = ([ category, complexity ]).join("_");  
+    if (!userIdUuidMap.get(id)){
+      ws.close(403, "Unauthorized");
     }
-    for (let match of matches) {
-      // matched own room. Ignore
+    if (!matchGroupListMap.get(matchGroup)){
+      matchGroupListMap.set(matchGroup, []);
+    }
+    for (let match of matchGroupListMap.get(matchGroup)) {
+      // if matched own room, ignore
       if(match.p1Ticket === ticket){
         continue;
       }
       match.p2Ticket = ticket;
       match.p2Ws = ws;
-      match.p1Ws.send('')
+      match.p1Ws.send(`found match with ${match.p2Ticket}`);
+      match.p2Ws.send(`found match with ${match.p1Ticket}`);
+      return;
     }
-
+    
     let match = new Match(ticket, ws);
-    matches.push(match);
-    ws.send('Registered match');
+    matchGroupListMap.get(matchGroup).push(match);
   });
 
   // Echo back the message to the client
@@ -71,16 +75,12 @@ wss.on('connection', (ws, req) => {
     console.error('WebSocket error:', error);
   });
 
-  // Send a welcome message to the client upon connection
-  ws.send('match-service websocket success');
-
 });
 
 export async function getTicket(req, res) {
   try{
     let uuid = randomUUID();
-    uuidJwtMap[uuid] = req.user.id;
-    uuidJwtMap['aaa'] = req.user.id;
+    userIdUuidMap.set(req.user.id, uuid);
     return res.status(200).json({ message: 'Success', data: uuid });
   }
   catch (err){
@@ -89,25 +89,127 @@ export async function getTicket(req, res) {
   }
 }
 
-export async function createMatch(req, res) {
-  // try {
+export async function findMatchByCategoryComplexity(req, res) {
+  try {
+      const {id, username, email} = req.user;
+      const attribute = [ req.params.category, req.params.complexity ]; 
+      const queueName = attribute.join(".");  
+      await handleChannelAssignment(queueName);
+      const channel = queueChannelMap.get(queueName);
+      channel.get(queueName, (message) => {
+        console.log("Received message:", message.content.toString());
+        channel.ack(message); // Acknowledge the message so RabbitMQ knows it has been processed
+        const replyMessage = `from partner ${id}`;
+        const replyQueue = message.properties.replyTo;
+        partnerChannel.sendToQueue(replyQueue, Buffer.from(replyMessage));
+        return res.status(200).json( {message: "Success", data: "Match found"});
+      });
 
-  //     const {id, username, email} = req.user;
-  //     const attribute = [ req.body.category, req.body.complexity ];
-  //     const queue = attribute.join("_");  
-  //     await handleChannelAssignment(queue);
-    
-  //     let channel = queueChannelMap.get(queue);   
-  //     // Send the message to the queue named "message_queue". Messages are sent as a buffer
-  //     const user = JSON.stringify({id, username, email});
-  //     channel.sendToQueue(queue, Buffer.from(user));
-  //     return res.status(200).json( { message: "Success", data: 'Created match' });
-  // } 
-  // catch (err) {
-  //     console.error(err);
-  //     return res.status(500).json({ message: "Error matching. Please try again" });
-  // }
+      // send a match request message to the common queue
+      const matchMessage = JSON.stringify({ id });
+      const replyQueue = id;
+      channel.sendToQueue(queueName, Buffer.from(matchMessage), {
+        replyTo: id
+      });
+      return res.status(200).json( { message: "Success", data: 'Waiting for match' });
+
+  } 
+  catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Error matching. Please try again" });
+  }
 }
+
+export async function getMatch(req, res){
+    try {
+      const {id, username, email} = req.user;
+      const attribute = [ req.params.category, req.params.complexity ]; 
+      const queueName = attribute.join(".");  
+      await handleChannelAssignment(queueName);
+      const channel = queueChannelMap.get(queueName);
+      channel.get(queueName, (message) => {
+        console.log("Received message:", message.content.toString());
+        // const message = `from partner syn + ack to match creator`;
+        // const replyTo = message.properties.replyTo;
+        // console.log('replyTo: ', replyTo);
+        // channel.sendToQueue(replyTo, Buffer.from('consumer syn + ack to producer'), {
+        //   replyTo: replyQueue.queue
+        // });
+        const replyTo = message.properties.replyTo;
+        channel.ack(message);
+        return res.status(200).json( {message: "Success", data: {replyTo: replyTo}});
+      });
+
+      return res.status(200).json( { message: "Success", data: {replyTo: ''} });
+  } 
+  catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Error matching. Please try again" });
+  }
+}
+
+// send a response to the replyTo queue in a message. Similar to syn + ack
+export async function replyTo(req, res){
+  try{
+    const {id, username, email} = req.user;
+    const { replyTo } = req.body;
+    channel.sendToQueue(replyTo, Buffer.from(`message from ${id}`), {
+      replyTo: id
+    });
+  }
+  catch (err){
+    console.error(err);
+    return res.status(500).json({ message: "Error matching. Please try again" });
+  }
+}
+
+export async function createMatch(req,res){
+  try{
+    const {id, username, email} = req.user;
+    const attribute = [ req.params.category, req.params.complexity ]; 
+    const queueName = attribute.join(".");
+    channel.sendToQueue(queueName, Buffer.from('consumer syn + ack to producer'), {
+      replyTo: id
+    });
+    return res.status(200).json({ message: "Success", data: `Created match on ${queueName}` });
+  }
+  catch (err){
+    console.error(err);
+    return res.status(500).json({ message: "Error matching. Please try again" });
+  }
+}
+
+export async function waitSync(req, res){
+  try{
+    const {id, username, email} = req.user;
+    const queueName = req.params.id;
+    if (queueName !== id){
+      return res.status(403).json({message: "Not authorized"});
+    }
+    const expire = 1000 * 60 * 5; // 5 minutes
+    await channel.assertQueue(queueName, { exclusive: true, autoDelete: true, arguments: { "x-expires":  expire}});
+
+    const consumerTag = await channel.consume(queueName, (message) =>{
+      console.log("waitMatch received message: ", message.content.toString());
+      const replyTo = message.properties.replyTo;
+      channel.ack(message);
+      return res.status(200).json({message: "Success", data: {"replyTo": replyTo }});
+    });
+
+    const timeout = setTimeout(() => {
+      console.log("Wait match timed out");
+      channel.cancel(consumerTag.consumerTag);
+      channel.close();
+      return res.status(408).json({message: "wait timed out"});
+    }, 60000)
+
+  }
+  catch (err){
+    console.error(err)
+    return res.status(500).json({ message: "Error matching. Please try again" });
+  }
+}
+
 
 export async function findRandomMatch(req,res){
   try{
@@ -175,3 +277,18 @@ async function handleChannelAssignment(queue){
     console.log(`Created channel for ${queue}`);
   }
 }
+
+/*
+message queue design
+1) user gets message from queue
+1.1) if queue is empty, user creates a match message containing a correlation ID and a reply-to queue
+1.1.1) user creates a new private queue to wait for messages
+1.1.2) when the user receives a message on the new queue, it means that another user consumed his message, and is successfully matched with him
+1.1.3) both user ack the message, and proceeds to the collab space
+
+1.2) if the queue is not empty, user consumes the message, and sends a message to the reply-to queue to confirm the match
+1.3) both users ack the message, and proceeds to the collab space
+
+in matching-controller, maintain the state of consumer and producer
+
+*/
