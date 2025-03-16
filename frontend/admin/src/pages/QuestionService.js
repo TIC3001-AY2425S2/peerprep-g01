@@ -15,8 +15,18 @@ function QuestionService() {
     try {
       const response = await axios.get('http://localhost:3002/questions');
       setQuestions(response.data.data);
-    } catch (error) {
-      console.error("Error fetching questions", error);
+    } 
+    catch (error) {
+      if (error.response){
+        const data = error.response.data;
+        console.error("Error fetching question: ", data.message);
+        alert(`Error fetching question: ${data.message}`);
+      }
+      else{
+        const unknownError = "Error fetching question: Unknown Error";
+        console.error(unknownError);
+        alert(unknownError);
+      }
     }
   };
 
@@ -32,10 +42,10 @@ function QuestionService() {
     try {
       if (editingQuestions) {
         await axios.patch(`http://localhost:3002/questions/${editingQuestions}`, newQuestion);
-        alert('Question updated successfully!');
+        alert('Question updated successfully');
       } else {
         await axios.post('http://localhost:3002/questions', newQuestion);
-        alert('Question created successfully!');
+        alert('Question created successfully');
       }
 
       setTitle('');
@@ -45,8 +55,18 @@ function QuestionService() {
       setLink('');
       setEditingQuestionId(null);
       fetchQuestion();
-    } catch (error) {
-      console.error("Error submitting question", error);
+    } 
+    catch (error) {
+      if (error.response){
+        const data = error.response.data;
+        console.error("Error submitting question: ", data.message);
+        alert(`Error submitting question: ${data.message}`);
+      }
+      else{
+        const unknownError = "Error submitting question: Unknown Error";
+        console.error(unknownError);
+        alert(unknownError);
+      }
     }
   };
 
@@ -66,8 +86,18 @@ function QuestionService() {
       await axios.delete(`http://localhost:3002/questions/${questionId}`);
       alert('Question deleted successfully!');
       fetchQuestion();
-    } catch (error) {
-      console.error("Error deleting question", error);
+    } 
+    catch (error) {
+      if (error.response){
+        const data = error.response.data;
+        console.error("Error deleting question: ", data.message);
+        alert(`Error deleting question: ${data.message}`);
+      }
+      else{
+        const unknownError = "Error deleting question: Unknown Error";
+        console.error(unknownError);
+        alert(unknownError);
+      }
     }
   };
 
@@ -220,7 +250,6 @@ function QuestionService() {
           <tr style={{ backgroundColor: '#343A40', color: 'white' }}>
             <th style={thTdStyle}>Title</th>
             <th style={thTdStyle}>Complexity</th>
-            <th style={thTdStyle}>Categories</th>
             <th style={thTdStyle}>Link</th>
             <th style={thTdStyle}>Actions</th>
           </tr>
@@ -230,7 +259,6 @@ function QuestionService() {
             <tr key={question._id} style={stripedRowStyle}>
               <td style={thTdStyle}>{question.title}</td>
               <td style={thTdStyle}>{question.complexity}</td>
-              <td style={thTdStyle}>{question.categories.join(', ')}</td>
               <td style={thTdStyle}>
                 <a href={question.link} target="_blank" rel="noopener noreferrer">{question.link}</a>
               </td>
