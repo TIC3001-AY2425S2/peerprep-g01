@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend/admin
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./frontend/admin:/app
+      - /app/node_modules
+    depends_on:
+      - user-service
+      - question-service
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    env_file: .env
+    environment:
+      - MONGODB_URI=${MONGODB_URI}/${USER_DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+
+  question-service:
+    build:
+      context: ./question-service
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    env_file: .env
+    environment:
+      - MONGODB_URI=${MONGODB_URI}/${QUESTION_DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+
+volumes:
+  mongodb_data: 
