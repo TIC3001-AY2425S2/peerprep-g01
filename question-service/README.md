@@ -20,6 +20,6 @@
 
     ![alt text](./GuideAssets/ConnectionString.png)
 
-5. In the `user-service` directory, create a copy of the `.env.sample` file and name it `.env`.
+5. In the `question-service` directory, create a copy of the `.env.sample` file and name it `.env`.
 
 6. Update the `DB_CLOUD_URI` of the `.env` file, and paste the string we copied earlier in step 4. Also remember to replace the `<password>` placeholder with the actual password.
