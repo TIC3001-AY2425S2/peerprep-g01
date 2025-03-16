@@ -1,25 +1,32 @@
-import logo from '../assets/images/react-logo.png'
-import './Header.css'
-import { useContext } from 'react'
-import Context from './Context'
+import React, { useContext } from 'react';
+import { Link } from 'react-router-dom';
+import AuthContext from '../context/AuthProvider'; // Import AuthContext
+import logo from '../assets/images/react-logo.png';
+import './Header.css';
 
 export default function Header() {
-    // const userData = useContext(Context)
+    const { isLoggedIn, username, logout } = useContext(AuthContext);
 
-    
     return (
         <nav className="nav-bar">
-        <p><a href="/"><img src={logo} alt="logo" height="50" /></a></p>
-        <ul>
-            <li><a href="/">Home</a></li>
-            <li><a href="/QuestionService">Question Service</a></li>
-            <li><a href="/contact-us">Contact</a></li>
-            <li><a href="/login">Login</a></li>
-            <li><a href="/signup">Sign Up</a></li>
-            {/* <li>Hello {userData.name}</li>
-            <li>Cart: {userData.cartItems}</li> */}
-        </ul>
+            <p><a href="/"><img src={logo} alt="logo" height="50" /></a></p>
+            <ul>
+                <li><Link to="/">Home</Link></li>
+                <li><Link to="/QuestionService">Question Service</Link></li>
+                <li><Link to="/contact-us">Contact</Link></li>
+
+                {!isLoggedIn ? (
+                    <>
+                        <li><Link to="/login">Login</Link></li>
+                        <li><Link to="/signup">Sign Up</Link></li>
+                    </>
+                ) : (
+                    <>
+                        <li>Hello, {username}!</li>
+                        <li><button onClick={logout}>Logout</button></li>
+                    </>
+                )}
+            </ul>
         </nav>
-    )
-    
+    );
 }
