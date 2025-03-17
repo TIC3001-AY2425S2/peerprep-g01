@@ -250,6 +250,8 @@ function QuestionService() {
           <tr style={{ backgroundColor: '#343A40', color: 'white' }}>
             <th style={thTdStyle}>Title</th>
             <th style={thTdStyle}>Complexity</th>
+            <th style={thTdStyle}>Categories</th>
+            <th style={thTdStyle}>Description</th>
             <th style={thTdStyle}>Link</th>
             <th style={thTdStyle}>Actions</th>
           </tr>
@@ -259,6 +261,8 @@ function QuestionService() {
             <tr key={question._id} style={stripedRowStyle}>
               <td style={thTdStyle}>{question.title}</td>
               <td style={thTdStyle}>{question.complexity}</td>
+              <td style={thTdStyle}>{question.categories.join(', ')}</td>
+              <td style={thTdStyle}>{question.description}</td>
               <td style={thTdStyle}>
                 <a href={question.link} target="_blank" rel="noopener noreferrer">{question.link}</a>
               </td>
