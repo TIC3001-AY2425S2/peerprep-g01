@@ -15,6 +15,7 @@ services:
     depends_on:
       - user-service
       - question-service
+    container_name: frontend-admin
 
   user-service:
     build:
@@ -26,6 +27,7 @@ services:
     environment:
       - MONGODB_URI=${MONGODB_URI}/${USER_DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
+    container_name: user-service
 
   question-service:
     build:
@@ -37,6 +39,7 @@ services:
     environment:
       - MONGODB_URI=${MONGODB_URI}/${QUESTION_DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
+    container_name: question-service
 
 volumes:
   mongodb_data: 
