@@ -51,7 +51,6 @@ const MatchPage = () => {
   }, [selectedComplexity, allQuestions]);
 
   const handleMatchRandomQuestion = () => {
-    if (socket)
     // Placeholder for backend match logic
     console.log("Matching a random question...");
     const randomQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
@@ -59,46 +58,21 @@ const MatchPage = () => {
     const categorySubmit = selectedCategory.toLocaleLowerCase();
     const complexitySubmit = selectedComplexity.toLocaleLowerCase();
     console.log(randomQuestion);
-    fetchWithAuth(`http://localhost:3003/match/ticket`)
+    fetchWithAuth(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`)
       .then((responseData) => {
-        const ticket = responseData.data;
-        const jwtDecoded = jwtDecode(jwtToken);
-        const matchData = JSON.stringify({ ticket, "category": categorySubmit, "complexity": complexitySubmit, "id": jwtDecoded.id});
-        const socket = new WebSocket("ws://localhost:8080") ;
-        socket.onopen = () => {
-          console.log("Connected");
-          socket.send(matchData);
+        const data = responseData.data;
+        if (data === "wait_partner"){
+          fetchWithAuth('http://localhost:3003/match/sync-with-room-partner', {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            }
+          });
         }
-        socket.onclose = () => console.log("Disconnected");
-        socket.onerror = (error) => console.error("WebSocket Error:", error);
-        socket.onmessage = (event) => {
-          console.log(event.data);
-        }
-        setWs(socket);
-        return () => socket.close();
       })
-      
-
-
-    
-    
-    // fetchWithAuth(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`)
-    //   .then((responseData) => {
-    //     const data = responseData.data;
-    //     if (data === "No match found"){
-    //       fetchWithAuth(`http://localhost:3003/match/create-match`, {
-    //         method: "POST",
-    //         headers: {
-    //           "Content-Type": "application/json",
-    //         },
-    //         body: JSON.stringify({ 'category': categorySubmit, 'complexity': complexitySubmit }),
-    //       })
-        
-    //     }
-    //   })
-    //   .catch(() => {
-    //     console.error("Error matching random question");
-    //   })
+      .catch(() => {
+        console.error("Error matching random question");
+      })
 
   };
 

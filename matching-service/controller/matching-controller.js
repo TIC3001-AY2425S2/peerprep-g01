@@ -9,110 +9,51 @@ import { match } from "assert";
 
 const connection = await amqp.connect("amqp://localhost");
 const queueChannelMap = new Map(); // maps queue to channel
-
-let userIdUuidMap = new Map();
-let matchGroupListMap = new Map();
-
-class Match {
-  constructor(p1Ticket, p1Ws) {
-    this.p1Ticket = p1Ticket;
-    this.p1Ws = p1Ws;
-    this.p2Ticket;
-    this.p2Ws;
-  }
-}
-
-const wsMiddleWare = (ws, req, next) => {
-  try {
-    const authTicket = "";
-    next(); // Proceed to next handler
-  }
-  catch (err) {
-    console.error(err);
-    ws.close(); // Close connection if authentication fails
-  }
-};
+const queues = new Map();
 
 const wss = new WebSocketServer({ port: 8080 });
-
-wss.on('connection', (ws, req) => {
-  console.log('new client connected');
-  ws.on("message", (message) => {
-    const matchData = message.toString();
-    console.log("Received:", matchData);
-    const { ticket, category, complexity, id } = JSON.parse(matchData);
-    const matchGroup = ([ category, complexity ]).join("_");  
-    if (!userIdUuidMap.get(id)){
-      ws.close(403, "Unauthorized");
-    }
-    if (!matchGroupListMap.get(matchGroup)){
-      matchGroupListMap.set(matchGroup, []);
-    }
-    for (let match of matchGroupListMap.get(matchGroup)) {
-      // if matched own room, ignore
-      if(match.p1Ticket === ticket){
-        continue;
-      }
-      match.p2Ticket = ticket;
-      match.p2Ws = ws;
-      match.p1Ws.send(`found match with ${match.p2Ticket}`);
-      match.p2Ws.send(`found match with ${match.p1Ticket}`);
-      return;
-    }
-    
-    let match = new Match(ticket, ws);
-    matchGroupListMap.get(matchGroup).push(match);
-  });
-
-  // Echo back the message to the client
-  // ws.send(`Echo: ${message}`);
-
-  ws.on('close', () => {
-    console.log('Client disconnected');
-  });
-
-  ws.on('error', error => {
-    console.error('WebSocket error:', error);
-  });
-
-});
-
-export async function getTicket(req, res) {
-  try{
-    let uuid = randomUUID();
-    userIdUuidMap.set(req.user.id, uuid);
-    return res.status(200).json({ message: 'Success', data: uuid });
-  }
-  catch (err){
-    console.error(err);
-    return res.status(500).json({ message: "Error matching. Please try again" });
-  }
-}
+const channel = await connection.createChannel();
+const syncQueueExpire = 1000 * 60 * 1; // 1 minute
 
 export async function findMatchByCategoryComplexity(req, res) {
   try {
       const {id, username, email} = req.user;
       const attribute = [ req.params.category, req.params.complexity ]; 
-      const queueName = attribute.join(".");  
-      await handleChannelAssignment(queueName);
-      const channel = queueChannelMap.get(queueName);
-      channel.get(queueName, (message) => {
+      const commonQueue = attribute.join(".");
+      const expire = 1000 * 60 * 1; // 1 minutes
+      const queue = await channel.assertQueue(commonQueue, { arguments: { "x-message-ttl": expire }});
+      queues[commonQueue] = queue;
+      const message = await channel.get(commonQueue);
+      if (message){
         console.log("Received message:", message.content.toString());
-        channel.ack(message); // Acknowledge the message so RabbitMQ knows it has been processed
-        const replyMessage = `from partner ${id}`;
-        const replyQueue = message.properties.replyTo;
-        partnerChannel.sendToQueue(replyQueue, Buffer.from(replyMessage));
-        return res.status(200).json( {message: "Success", data: "Match found"});
-      });
+        console.log(message.properties.replyTo);
+        channel.ack(message);
+        return res.status(200).json( {message: "Success", data: {"room_host": message.properties.replyTo} });
+      }
+      else{
+        const matchMessage = JSON.stringify({ id });
+        channel.sendToQueue(commonQueue, Buffer.from(matchMessage), {
+          replyTo: id
+        });
+        return res.status(200).json( { message: "Success", data: 'wait_partner' });
+      }
 
-      // send a match request message to the common queue
-      const matchMessage = JSON.stringify({ id });
-      const replyQueue = id;
-      channel.sendToQueue(queueName, Buffer.from(matchMessage), {
-        replyTo: id
-      });
-      return res.status(200).json( { message: "Success", data: 'Waiting for match' });
+      // channel.get(queueName, (message) => {
+      //   console.log("Received message:", message.content.toString());
+      //   channel.ack(message); // Acknowledge the message so RabbitMQ knows it has been processed
+      //   const replyMessage = `from partner ${id}`;
+      //   const replyTo = message.properties.replyTo;
+        
+      //   partnerChannel.sendToQueue(replyTo, Buffer.from(replyMessage));
+      //   return res.status(200).json( {message: "Success", data: "Match found"});
+      // });
 
+      // // if there's no match request in the common queue, send a match request message to the common queue to create a match request
+      // const matchMessage = JSON.stringify({ id });
+      // channel.sendToQueue(queueName, Buffer.from(matchMessage), {
+      //   replyTo: id
+      // });
+      // return res.status(200).json( { message: "Success", data: 'Waiting for match' });
   } 
   catch (err) {
       console.error(err);
@@ -120,96 +61,52 @@ export async function findMatchByCategoryComplexity(req, res) {
   }
 }
 
-export async function getMatch(req, res){
-    try {
-      const {id, username, email} = req.user;
-      const attribute = [ req.params.category, req.params.complexity ]; 
-      const queueName = attribute.join(".");  
-      await handleChannelAssignment(queueName);
-      const channel = queueChannelMap.get(queueName);
-      channel.get(queueName, (message) => {
-        console.log("Received message:", message.content.toString());
-        // const message = `from partner syn + ack to match creator`;
-        // const replyTo = message.properties.replyTo;
-        // console.log('replyTo: ', replyTo);
-        // channel.sendToQueue(replyTo, Buffer.from('consumer syn + ack to producer'), {
-        //   replyTo: replyQueue.queue
-        // });
-        const replyTo = message.properties.replyTo;
-        channel.ack(message);
-        return res.status(200).json( {message: "Success", data: {replyTo: replyTo}});
-      });
-
-      return res.status(200).json( { message: "Success", data: {replyTo: ''} });
-  } 
-  catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Error matching. Please try again" });
-  }
-}
-
-// send a response to the replyTo queue in a message. Similar to syn + ack
-export async function replyTo(req, res){
-  try{
-    const {id, username, email} = req.user;
-    const { replyTo } = req.body;
-    channel.sendToQueue(replyTo, Buffer.from(`message from ${id}`), {
-      replyTo: id
-    });
-  }
-  catch (err){
-    console.error(err);
-    return res.status(500).json({ message: "Error matching. Please try again" });
-  }
-}
-
-export async function createMatch(req,res){
-  try{
-    const {id, username, email} = req.user;
-    const attribute = [ req.params.category, req.params.complexity ]; 
-    const queueName = attribute.join(".");
-    channel.sendToQueue(queueName, Buffer.from('consumer syn + ack to producer'), {
-      replyTo: id
-    });
-    return res.status(200).json({ message: "Success", data: `Created match on ${queueName}` });
-  }
-  catch (err){
-    console.error(err);
-    return res.status(500).json({ message: "Error matching. Please try again" });
-  }
-}
-
-export async function waitSync(req, res){
-  try{
-    const {id, username, email} = req.user;
-    const queueName = req.params.id;
-    if (queueName !== id){
-      return res.status(403).json({message: "Not authorized"});
+export async function syncWithRoomHost(req, res){
+  // for room partner to sync with room host
+  const {id, username, email} = req.user;
+  const roomHostId = req.params.roomHostId;
+  await channel.assertQueue(roomHostId, { autoDelete: true, arguments: { "x-expires":  syncQueueExpire}});
+  channel.sendToQueue(roomHostId, Buffer.from(id), { expiration: expire });
+  await channel.assertQueue(id, { autoDelete: true, arguments: { "x-expires":  syncQueueExpire}});
+  const consumerTag = await channel.consume(myQueue, (message) => {
+    console.log("syncWithRoomHost received message: ", message.content.toString());
+    channel.ack(message);
+    const syncRoomHostId = message.content.id;
+    if (syncRoomHostId === roomHostId ){
+      return res.status(200).json({message: "Success", data: message.content.toString() });
     }
-    const expire = 1000 * 60 * 5; // 5 minutes
-    await channel.assertQueue(queueName, { exclusive: true, autoDelete: true, arguments: { "x-expires":  expire}});
+  });
 
-    const consumerTag = await channel.consume(queueName, (message) =>{
-      console.log("waitMatch received message: ", message.content.toString());
-      const replyTo = message.properties.replyTo;
-      channel.ack(message);
-      return res.status(200).json({message: "Success", data: {"replyTo": replyTo }});
-    });
-
-    const timeout = setTimeout(() => {
-      console.log("Wait match timed out");
-      channel.cancel(consumerTag.consumerTag);
-      channel.close();
-      return res.status(408).json({message: "wait timed out"});
-    }, 60000)
-
-  }
-  catch (err){
-    console.error(err)
-    return res.status(500).json({ message: "Error matching. Please try again" });
-  }
+  const timeout = setTimeout(() => {
+    console.log("Wait match timed out");
+    channel.cancel(consumerTag.consumerTag);
+    channel.close();
+    return res.status(408).json({message: "wait timed out"});
+  }, syncQueueExpire)
 }
 
+export async function syncWithRoomPartner(req, res){
+  // for room host to sync with room partner
+  const {id, username, email} = req.user;
+  await channel.assertQueue(id, { autoDelete: true, durable: false, arguments: { "x-expires":  syncQueueExpire}});
+  const consumerTag = await channel.consume(id, (message) => {
+    console.log("syncWithRoomPartner received message: ", message.content.toString());
+    channel.ack(message);
+    const partnerQueue = message.properties.replyTo;
+    (async () => {
+      const expire = 1000 * 60 * 1; // 1 minutes
+      await channel.assertQueue(partnerQueue, { exclusive: true, autoDelete: true, arguments: { "x-expires":  expire}});
+      channel.sendToQueue(roomHostId, Buffer.from(id), { expiration: expire });
+    });
+    return res.status(200).json({message: "Success", data: message.content.toString() });
+  });
+
+  const timeout = setTimeout(() => {
+    console.log("Wait match timed out");
+    channel.cancel(consumerTag.consumerTag);
+    return res.status(408).json({message: "wait timed out"});
+  }, syncQueueExpire)
+}
 
 export async function findRandomMatch(req,res){
   try{
