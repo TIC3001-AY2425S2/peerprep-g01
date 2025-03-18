@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RabbitMQ Example</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>RabbitMQ Message Queue</h1>
+  <input id="messageInput" type="text" placeholder="Enter your message" />
+  <button onclick="sendMessage()">Send Message</button>
+
+  <script>
+    function sendMessage() {
+      const message = document.getElementById('messageInput').value;
+
+      fetch(`http://localhost:3000/send/${encodeURIComponent(message)}`)
+        .then(response => response.text())
+        .then(data => alert(data));
+    }
+  </script>
+</body>
+</html>

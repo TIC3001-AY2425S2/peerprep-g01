@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { fetchWithAuth } from './fetchHelper'; // Import the helper function
+import { jwtDecode } from "jwt-decode";
+
 
 const MatchPage = () => {
   const [allQuestions, setAllQuestions] = useState([]);
@@ -9,72 +12,36 @@ const MatchPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedComplexity, setSelectedComplexity] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const [ws, setWs] = useState(null);
+  const [message, setMessage] = useState("");
+  const [showMessage, setShowMessage] = useState(false);
 
+  const jwtToken = localStorage.getItem("token");
 
   useEffect(() => {
-    // Fetch available categories
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch("http://localhost:3002/questions/category");
-        if (!response.ok) {
-          throw new Error("Failed to fetch categories");
-        }
-        const data = await response.json();
-        setCategories(data.data);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      }
-    };
-
-    fetchCategories();
+    // Use the helper function to make a fetch request with Authorization header
+    fetchWithAuth('http://localhost:3002/questions/category')
+      .then((responseData) => {
+        setCategories(responseData.data);
+      })
+      .catch(() => {
+        console.error('Error fetching categories');
+      });
   }, []);
-
-  // useEffect(() => {
-  //   // Fetch questions only when both filters are selected
-  //   if (!selectedCategory || !selectedComplexity) return;
-
-  //   const fetchQuestions = async () => {
-  //     try {
-  //       const response = await fetch(
-  //         `http://localhost:3002/questions/?category=${selectedCategory}&complexity=${selectedComplexity}`
-  //       );
-
-  //       if (!response.ok) {
-  //         throw new Error("Failed to fetch questions");
-  //       }
-
-  //       const data = await response.json();
-  //       setQuestions(data.data);
-  //     } catch (error) {
-  //       console.error("Error fetching questions:", error);
-  //     }
-  //   };
-
-  //   fetchQuestions();
-  // }, [selectedCategory, selectedComplexity]);
 
   useEffect(() => {
     if (!selectedCategory) return;
-
-    const fetchQuestionsByCategory = async () => {
-      try {
-        const response = await fetch(`http://localhost:3002/questions/category/${selectedCategory}`);
-        if (!response.ok) throw new Error("Failed to fetch questions");
-
-        const data = await response.json();
-        setAllQuestions(data.data);
-
-        // Extract unique complexity levels
-        const uniqueComplexities = Array.from(new Set(data.data.map(q => q.complexity)));
+    fetchWithAuth(`http://localhost:3002/questions/category/${selectedCategory}`)
+      .then((responseData) => {
+        setAllQuestions(responseData.data);
+        const uniqueComplexities = Array.from(new Set(responseData.data.map(q => q.complexity)));
         setComplexities(uniqueComplexities);
         setSelectedComplexity(""); // Reset complexity selection when category changes
-      } catch (error) {
-        console.error("Error fetching questions:", error);
-      }
-    };
-
-    fetchQuestionsByCategory();
-  }, [selectedCategory]);
+      })
+      .catch(() => {
+        console.error("Error fetching questions");
+      })
+    }, [selectedCategory]);
 
   useEffect(() => {
     if (selectedComplexity) {
@@ -88,6 +55,25 @@ const MatchPage = () => {
     console.log("Matching a random question...");
     const randomQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
     setSelectedQuestion(randomQuestion);  // Match a random question
+    const categorySubmit = selectedCategory.toLocaleLowerCase();
+    const complexitySubmit = selectedComplexity.toLocaleLowerCase();
+    console.log(randomQuestion);
+    fetchWithAuth(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`)
+      .then((responseData) => {
+        const data = responseData.data;
+        if (data === "wait_partner"){
+          fetchWithAuth('http://localhost:3003/match/sync-with-room-partner', {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            }
+          });
+        }
+      })
+      .catch(() => {
+        console.error("Error matching random question");
+      })
+
   };
 
   const handleSelectQuestion = (question) => {

@@ -1,12 +1,10 @@
 import './App.css'
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import Navbar from './components/Navbar.jsx';
 import Match from './components/Match.jsx';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
       const token = localStorage.getItem("token");

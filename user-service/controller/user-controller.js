@@ -24,11 +24,9 @@ export async function createUser(req, res) {
       const salt = bcrypt.genSaltSync(10);
       const hashedPassword = bcrypt.hashSync(password, salt);
       const createdUser = await _createUser(username, email, hashedPassword);
-      return res.status(201).json({
-        message: `Created new user ${username} successfully`,
-        data: formatUserResponse(createdUser),
-      });
-    } else {
+      return res.status(201).json({message: `Success`, data: formatUserResponse(createdUser)});
+    } 
+    else {
       return res.status(400).json({ message: "username and/or email and/or password are missing" });
     }
   } catch (err) {
