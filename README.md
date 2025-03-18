@@ -42,7 +42,7 @@ This command will build the images and start the containers as defined in your d
 docker-compose up --build
 8.	Access the Services:
 After the containers are up, you can access the services at the following URLs:
-•	Admin Frontend: http://localhost:3000
-•	User Frontend: http://localhost:2999
-•	User Service: http://localhost:3001
-•	Question Service: http://localhost:3002
+- Admin Frontend: http://localhost:3000
+- User Frontend: http://localhost:2999
+- User Service: http://localhost:3001
+- Question Service: http://localhost:3002
