@@ -16,9 +16,9 @@ export async function createUser(req, res) {
   try {
     const { username, email, password } = req.body;
     if (username && email && password) {
-      const existingUser = await _findUserByUsernameOrEmail(username, email);
-      if (existingUser) {
-        return res.status(409).json({ message: "username or email already exists" });
+      const existingEmail = await _findUserByEmail(email);
+      if (existingEmail) {
+        return res.status(409).json({ message: "email already exists" });
       }
 
       const salt = bcrypt.genSaltSync(10);
