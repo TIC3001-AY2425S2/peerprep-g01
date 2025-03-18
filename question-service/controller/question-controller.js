@@ -27,12 +27,16 @@ export async function createQuestion(req, res) {
         if (isQuestionExists) {
             return res.status(409).json({ message: "Question title already exists" });
         }
-        const createdQuestion = await _createQuestion(title_trim, description, complexity, categories, link);
-        return res.status(201).json({message: `Success`, data: formatQuestionResponse(createdQuestion)});
+        const newCategories = processCategoriesToArray(categories);
+        const createdQuestion = await _createQuestion(title_trim, description, complexity, newCategories, link);
+        return res.status(201).json({
+            message: `Success`,
+            data: formatQuestionResponse(createdQuestion),
+        });
     } 
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: err });
+        return res.status(500).json({ message: err.message });
     }
 }
 
@@ -44,7 +48,7 @@ export async function findQuestionByText(req, res) {
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: err });
+        return res.status(500).json({ message: err.message });
     }
 }
 
@@ -62,7 +66,7 @@ export async function findQuestionById(req, res) {
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: err });
+        return res.status(500).json({ message: err.message });
     }
 }
 
@@ -74,7 +78,7 @@ export async function findQuestionByDescription(req, res) {
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: err });
+        return res.status(500).json({ message: err.message });
     }
 }
 
@@ -86,7 +90,7 @@ export async function findQuestionByTitle(req, res) {
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: err });
+        return res.status(500).json({ message: err.message });
     }
 }
 
@@ -98,7 +102,7 @@ export async function findQuestionByComplexity(req, res) {
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: err });
+        return res.status(500).json({ message: err.message });
     }
 }
 
@@ -110,7 +114,7 @@ export async function findQuestionByCategory(req, res) {
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: err });
+        return res.status(500).json({ message: err.message });
     }
 }
 
@@ -121,7 +125,7 @@ export async function findQuestionByFilter(req, res){
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: err });
+        return res.status(500).json({ message: err.message });
     }
 }
 
@@ -145,7 +149,7 @@ export async function getQuestions(req, res) {
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: err });
+        return res.status(500).json({ message: err.message });
     }
 }
 
@@ -180,7 +184,9 @@ export async function updateQuestion(req, res) {
                 return res.status(409).json({ message: "Question title already exists" });
             }
         }
-        const updatedQuestion = await _updateQuestionById(id, title, description, complexity, categories, link);
+
+        const newCategories = processCategoriesToArray(categories);
+        const updatedQuestion = await _updateQuestionById(id, title, description, complexity, newCategories, link);
         return res.status(200).json({
             message: `Success`,
             data: formatQuestionResponse(updatedQuestion),
@@ -188,7 +194,7 @@ export async function updateQuestion(req, res) {
     }
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: err });
+        return res.status(500).json({ message: err.message });
     }
 }
 
@@ -207,7 +213,7 @@ export async function deleteQuestion(req, res) {
     } 
     catch (err) {
         console.error(err);
-        return res.status(500).json({ message: err });
+        return res.status(500).json({ message: err.message });
     }
 }
 
@@ -226,4 +232,31 @@ export function formatQuestionResponse(question) {
         createdAt: question.createdAt,
         link: question.link
     };
+}
+
+/*
+  the question json is sent to the front-end in JSON format. But when updating or creating new questions, the categories is submitted in different format
+  Hence, this hack is used to process the categories to an array format
+*/
+function processCategoriesToArray(categories){
+  let processed = [];
+  console.log(categories);
+
+  if(Array.isArray(categories)){
+    console.log("newCateprocessedgories: ", categories);
+    processed.push(...(categories[0].split(',')));
+  }
+
+  else if(categories.includes(',')){
+    console.log("processed: ", categories);
+    processed.push(...(categories.split(',')));
+  }
+
+  else{
+    processed.push(categories);
+  }
+
+  let trimmed = processed.map(word => word.trim());
+  console.log("trimmed: ", trimmed);
+  return trimmed;
 }

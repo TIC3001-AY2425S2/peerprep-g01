@@ -1,17 +1,34 @@
+import { useEffect, useState } from "react";
+
 export default function Home() {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [username, setUsername] = useState("");
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        const storedUsername = localStorage.getItem("username");
+        if (token) {
+            setIsLoggedIn(true);
+            setUsername(storedUsername || "User");
+        }
+    }, []);
+
     return (
         <>
             <h1>Homepage</h1>
-            <ul className="productBox">
-                <li>
-                    <a href="/product/143" className="productLink"><img className="productImage" src={require('../assets/images/good-day-to-code.jpg')} alt="It's a good day to code"/></a>
-                    <br /><a href="/product/143" className="productLink">It's a good day to code</a>
-                </li>
-                <li>
-                    <a href="/product/486" className="productLink"><img className="productImage" src={require('../assets/images/eat-sleep-code-repeat.jpg')} alt="Eat. Sleep. Code. Repeat."/></a>
-                    <br /><a href="/product/486" className="productLink">Eat. Sleep. Code. Repeat.</a>
-                </li>
-            </ul>
+            <div>
+                {isLoggedIn ? (
+                    <>
+                        <h1>Welcome, {username}!</h1>
+                        <p>You are now logged in.</p>
+                    </>
+                ) : (
+                    <>
+                        <h1>Welcome to our website!</h1>
+                        <p>Please <a href="/login">log in</a> or <a href="/signup">sign up</a> to continue.</p>
+                    </>
+                )}
+            </div>
         </>
-    )
+    );
 }
