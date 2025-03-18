@@ -25,7 +25,7 @@ export async function findMatchByCategoryComplexity(req, res) {
       queues[commonQueue] = queue;
       const message = await channel.get(commonQueue);
       if (message){
-        console.log("Received message:", message.content.toString());
+        console.log("findMatchByCategoryComplexity Received message:", message.content.toString());
         console.log(message.properties.replyTo);
         channel.ack(message);
         return res.status(200).json( {message: "Success", data: {"room_host": message.properties.replyTo} });
@@ -37,23 +37,6 @@ export async function findMatchByCategoryComplexity(req, res) {
         });
         return res.status(200).json( { message: "Success", data: 'wait_partner' });
       }
-
-      // channel.get(queueName, (message) => {
-      //   console.log("Received message:", message.content.toString());
-      //   channel.ack(message); // Acknowledge the message so RabbitMQ knows it has been processed
-      //   const replyMessage = `from partner ${id}`;
-      //   const replyTo = message.properties.replyTo;
-        
-      //   partnerChannel.sendToQueue(replyTo, Buffer.from(replyMessage));
-      //   return res.status(200).json( {message: "Success", data: "Match found"});
-      // });
-
-      // // if there's no match request in the common queue, send a match request message to the common queue to create a match request
-      // const matchMessage = JSON.stringify({ id });
-      // channel.sendToQueue(queueName, Buffer.from(matchMessage), {
-      //   replyTo: id
-      // });
-      // return res.status(200).json( { message: "Success", data: 'Waiting for match' });
   } 
   catch (err) {
       console.error(err);
@@ -78,7 +61,7 @@ export async function syncWithRoomHost(req, res){
   });
 
   const timeout = setTimeout(() => {
-    console.log("Wait match timed out");
+    console.log("syncWithRoomHost timed out");
     channel.cancel(consumerTag.consumerTag);
     channel.close();
     return res.status(408).json({message: "wait timed out"});
@@ -102,7 +85,7 @@ export async function syncWithRoomPartner(req, res){
   });
 
   const timeout = setTimeout(() => {
-    console.log("Wait match timed out");
+    console.log("syncWithRoomPartner timed out");
     channel.cancel(consumerTag.consumerTag);
     return res.status(408).json({message: "wait timed out"});
   }, syncQueueExpire)
