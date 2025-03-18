@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  frontend:
+  frontend-admin:
     build:
       context: ./frontend/admin
       dockerfile: Dockerfile
@@ -16,6 +16,22 @@ services:
       - user-service
       - question-service
     container_name: frontend-admin
+
+  frontend-user:
+    build:
+      context: ./frontend/users/peerprep-react
+      dockerfile: Dockerfile
+    ports:
+      - "2999:2999"
+    environment:
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./frontend/users/peerprep-react:/app
+      - /app/node_modules
+    depends_on:
+      - user-service
+      - question-service
+    container_name: frontend-user
 
   user-service:
     build:

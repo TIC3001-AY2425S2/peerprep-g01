@@ -9,14 +9,14 @@ export async function handleLogin(req, res) {
   console.log("Request body:", req.body)
   if (username && password) {
     try {
-      const user = await _findUserByUsername(username);
+      const user = await _findUserByEmail(username);
       if (!user) {
-        return res.status(401).json({ message: "Wrong username and/or password" });
+        return res.status(401).json({ message: "Wrong email and/or password" });
       }
 
       const match = await bcrypt.compare(password, user.password);
       if (!match) {
-        return res.status(401).json({ message: "Wrong username and/or password" });
+        return res.status(401).json({ message: "Wrong email and/or password" });
       }
 
       const accessToken = jwt.sign({
@@ -32,7 +32,7 @@ export async function handleLogin(req, res) {
       return res.status(500).json({ message: err.message });
     }
   } else {
-    return res.status(400).json({ message: "Missing username 404 and/or password" });
+    return res.status(400).json({ message: "Missing email and/or password" });
   }
 }
 
