@@ -13,27 +13,59 @@ const MatchPage = () => {
 
   useEffect(() => {
     // Use the helper function to make a fetch request with Authorization header
-    fetchWithAuth('http://localhost:3002/questions/category')
-      .then((responseData) => {
-        setCategories(responseData.data);
-      })
-      .catch(() => {
-        console.error('Error fetching categories');
-      });
+    const fetchCategories = async() => {
+      try {
+        const { fetchPromise, abortController }  = await fetchWithAuth('http://localhost:3002/questions/category')
+        const response = await fetchPromise;
+        const responseJson = await response.json();
+        console.log(responseJson);
+        setCategories(responseJson.data);
+      }
+      catch (err){
+        console.error(err.message);
+      }
+    }
+    fetchCategories();
+    // fetchWithAuth('http://localhost:3002/questions/category')
+    // .then((responseData) => {
+    //   console.log("fected")
+    //   setCategories(responseData.data);
+    // })
+    // .catch(() => {
+    //   console.error('Error fetching categories');
+    // });
   }, []);
 
   useEffect(() => {
-    if (!selectedCategory) return;
-    fetchWithAuth(`http://localhost:3002/questions/category/${selectedCategory}`)
-      .then((responseData) => {
-        setAllQuestions(responseData.data);
-        const uniqueComplexities = Array.from(new Set(responseData.data.map(q => q.complexity)));
+    const fetchComplexityOfSelectedCategory = async() => {
+      try{
+        if (!selectedCategory) return;
+        const { fetchPromise, abortController }  = await fetchWithAuth(`http://localhost:3002/questions/category/${selectedCategory}`);
+        const response = await fetchPromise;
+        const responseJson = await response.json();
+        console.log(responseJson);
+        setAllQuestions(responseJson.data);
+        const uniqueComplexities = Array.from(new Set(responseJson.data.map(q => q.complexity)));
         setComplexities(uniqueComplexities);
-        setSelectedComplexity(""); // Reset complexity selection when category changes
-      })
-      .catch(() => {
-        console.error("Error fetching questions");
-      })
+        setSelectedComplexity("");
+      }
+      catch (err){
+        console.error(err.message);
+      }
+    }
+    fetchComplexityOfSelectedCategory();
+    
+    // if (!selectedCategory) return;
+    // fetchWithAuth(`http://localhost:3002/questions/category/${selectedCategory}`)
+    //   .then((responseData) => {
+    //     setAllQuestions(responseData.data);
+    //     const uniqueComplexities = Array.from(new Set(responseData.data.map(q => q.complexity)));
+    //     setComplexities(uniqueComplexities);
+    //     setSelectedComplexity(""); // Reset complexity selection when category changes
+    //   })
+    //   .catch(() => {
+    //     console.error("Error fetching questions");
+    //   })
     }, [selectedCategory]);
 
   useEffect(() => {
@@ -51,22 +83,28 @@ const MatchPage = () => {
     const categorySubmit = selectedCategory.toLocaleLowerCase();
     const complexitySubmit = selectedComplexity.toLocaleLowerCase();
     console.log(randomQuestion);
-    fetchWithAuth(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`)
-      .then((responseData) => {
-        const data = responseData.data;
-        if (data === "wait_partner"){
-          fetchWithAuth('http://localhost:3003/match/sync-with-room-partner', {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            }
-          });
-        }
-      })
-      .catch(() => {
-        console.error("Error matching random question");
-      })
-
+    const fetchMatch = async() => {
+      const { fetchPromise, abortController } = await fetchWithAuth(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`);
+      const response = await fetchPromise;
+      const responseJson = await response.json();
+      console.log(responseJson);
+      const roomHost = responseJson.data.roomHost;
+      if(roomHost === 'self'){
+        const { fetchPromise, abortController } = await fetchWithAuth('http://localhost:3003/match/sync-with-room-partner');
+        const response = await fetchPromise;
+        console.log('room host self');
+        const responseJson = await response.json();
+        console.log(responseJson);
+      }
+      else{
+        const { fetchPromise, abortController } = await fetchWithAuth(`http://localhost:3003/match/sync-with-room-host/${roomHost}`);
+        const response = await fetchPromise;
+        console.log('room host other')
+        const responseJson = await response.json();
+        console.log(responseJson);
+      }
+    }
+    fetchMatch();
   };
 
   const handleSelectQuestion = (question) => {

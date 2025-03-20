@@ -13,8 +13,8 @@ const queues = new Map();
 
 const wss = new WebSocketServer({ port: 8080 });
 const channel = await connection.createChannel();
-const roomPartnerExpiry = 1000 * 60; // 10 seconds
-const roomHostExpiry =  1000 * 60; // 30 seconds
+const roomPartnerExpiry = 1000 * 30; // 10 seconds
+const roomHostExpiry =  1000 * 30; // 30 seconds
 const matchExpire = 1000 * 30; // 30 seconds
 
 export async function matchByCategoryComplexity(req, res) {
@@ -28,13 +28,13 @@ export async function matchByCategoryComplexity(req, res) {
       if (message){
         console.log(`${id} matched with an existing match by ${message.properties.replyTo}`);
         channel.ack(message);
-        return res.status(200).json( {message: "Success", data: {"room_host": message.properties.replyTo} });
+        return res.status(200).json( {message: "Success", data: {"roomHost": message.properties.replyTo} });
       }
       else{
         console.log(`creating match by ${id}`);
         const matchMessage = JSON.stringify({ id });
         channel.sendToQueue(commonQueue, Buffer.from(matchMessage), { replyTo: id });
-        return res.status(200).json( { message: "Success", data: 'wait_partner' });
+        return res.status(200).json( { message: "Success", data:  {"roomHost": 'self'} });
       }
   } 
   catch (err) {
@@ -51,10 +51,6 @@ export async function syncWithRoomHost(req, res){
   // 4. Room Partner wait for sync message from Room Host till timeout
 
   try{
-    const timeout = setTimeout(() => {
-      console.log(`syncWithRoomHost timed out for ${username}`);
-      return res.status(408).json({message: "wait timed out"});
-    }, roomPartnerExpiry)
     const {id, username, email} = req.user;
     const roomHostId = req.params.roomHostId;
     if(id === roomHostId){
@@ -65,7 +61,15 @@ export async function syncWithRoomHost(req, res){
     channel.sendToQueue(roomHostId, Buffer.from(matchMessage), { replyTo: id });
     console.log("room partner to room host sync sent")
     await createRoomPartnerQueue(id);
-    await channel.consume(id, (message) => {
+    let consumerTag;
+    
+    const timeout = setTimeout(() => {
+      console.log(`syncWithRoomHost timed out for ${username}`);
+      channel.cancel(consumerTag.consumerTag);
+      return res.status(408).json({message: "wait timed out"});
+    }, roomPartnerExpiry)
+
+    consumerTag = await channel.consume(id, (message) => {
       clearTimeout(timeout);
       const messageContent = message.content.toString();
       console.log("syncWithRoomHost received message: ", messageContent);
@@ -81,9 +85,12 @@ export async function syncWithRoomHost(req, res){
         return res.status(409).json({ message: "Match conflict" });
       }
     });
+
+
   }
   catch (err){
     console.log(err.message);
+    channel.cancel(consumerTag.consumerTag)
     return res.status(500).json({message: "server error"});
   }
 }
@@ -98,14 +105,18 @@ export async function syncWithRoomPartner(req, res){
   // 6. Room Host send sync message to the Room Partner queue
   // 7. Room Partner wait for sync message from Room Host
   try{
-    const timeout = setTimeout(() => {
-      console.log(`syncWithRoomPartner timed out for ${username}`);
-      return res.status(408).json({message: "wait timed out"});
-    }, roomHostExpiry)
-  
     const {id, username, email} = req.user;
     await createRoomHostQueue(id);
-    await channel.consume(id, (message) => {
+    let consumerTag;
+
+    const timeout = setTimeout(() => {
+      console.log(`syncWithRoomPartner timed out for ${username}`);
+      console.log('to cancel consumerTag: ', consumerTag.consumerTag);
+      channel.cancel(consumerTag.consumerTag);
+      return res.status(408).json({message: "wait timed out"});
+    }, roomHostExpiry)
+
+    consumerTag = await channel.consume(id, (message) => {
       clearTimeout(timeout);
       console.log("syncWithRoomPartner received message: ", message.content.toString());
       channel.ack(message);
@@ -125,6 +136,7 @@ export async function syncWithRoomPartner(req, res){
   }
   catch (err){
     console.error(err.message);
+    channel.cancel(consumerTag.consumerTag);
     return res.status(500).json({message: "server error"});
   }
 }
