@@ -10,12 +10,19 @@ const MatchPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedComplexity, setSelectedComplexity] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const [isMatching, setIsMatching] = useState(false);
+  const token = localStorage.getItem('token')
+  const headers = {
+    ...(token && { 'Authorization': `Bearer ${token}` }), // If token exists, copy the 'Authorization': `Bearer ${token}` to the header dict
+    //...options.headers, // copy other headers to header dict
+  };
+  const [roomHostAbortController, setRoomHostAbortController] = useState(null); // Store the controller here
 
   useEffect(() => {
     // Use the helper function to make a fetch request with Authorization header
     const fetchCategories = async() => {
       try {
-        const { fetchPromise, abortController }  = await fetchWithAuth('http://localhost:3002/questions/category')
+        const fetchPromise = await fetch('http://localhost:3002/questions/category', { headers });
         const response = await fetchPromise;
         const responseJson = await response.json();
         console.log(responseJson);
@@ -26,21 +33,13 @@ const MatchPage = () => {
       }
     }
     fetchCategories();
-    // fetchWithAuth('http://localhost:3002/questions/category')
-    // .then((responseData) => {
-    //   console.log("fected")
-    //   setCategories(responseData.data);
-    // })
-    // .catch(() => {
-    //   console.error('Error fetching categories');
-    // });
   }, []);
 
   useEffect(() => {
     const fetchComplexityOfSelectedCategory = async() => {
       try{
         if (!selectedCategory) return;
-        const { fetchPromise, abortController }  = await fetchWithAuth(`http://localhost:3002/questions/category/${selectedCategory}`);
+        const fetchPromise = await fetch(`http://localhost:3002/questions/category/${selectedCategory}`, { headers });
         const response = await fetchPromise;
         const responseJson = await response.json();
         console.log(responseJson);
@@ -54,18 +53,6 @@ const MatchPage = () => {
       }
     }
     fetchComplexityOfSelectedCategory();
-    
-    // if (!selectedCategory) return;
-    // fetchWithAuth(`http://localhost:3002/questions/category/${selectedCategory}`)
-    //   .then((responseData) => {
-    //     setAllQuestions(responseData.data);
-    //     const uniqueComplexities = Array.from(new Set(responseData.data.map(q => q.complexity)));
-    //     setComplexities(uniqueComplexities);
-    //     setSelectedComplexity(""); // Reset complexity selection when category changes
-    //   })
-    //   .catch(() => {
-    //     console.error("Error fetching questions");
-    //   })
     }, [selectedCategory]);
 
   useEffect(() => {
@@ -76,7 +63,8 @@ const MatchPage = () => {
   }, [selectedComplexity, allQuestions]);
 
   const handleMatchRandomQuestion = () => {
-    // Placeholder for backend match logic
+    const roomHostAbortController = new AbortController();
+    setRoomHostAbortController(roomHostAbortController); 
     console.log("Matching a random question...");
     const randomQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
     setSelectedQuestion(randomQuestion);  // Match a random question
@@ -84,27 +72,48 @@ const MatchPage = () => {
     const complexitySubmit = selectedComplexity.toLocaleLowerCase();
     console.log(randomQuestion);
     const fetchMatch = async() => {
-      const { fetchPromise, abortController } = await fetchWithAuth(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`);
-      const response = await fetchPromise;
-      const responseJson = await response.json();
-      console.log(responseJson);
-      const roomHost = responseJson.data.roomHost;
-      if(roomHost === 'self'){
-        const { fetchPromise, abortController } = await fetchWithAuth('http://localhost:3003/match/sync-with-room-partner');
+      try{
+        // const abortController = new AbortController();
+        // console.log('match.jsx abort controller: ', abortController);
+        const signal = roomHostAbortController.signal;
+        const fetchPromise = await fetch(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`, { headers, signal });
+        //roomHostAbortController.abort();
         const response = await fetchPromise;
-        console.log('room host self');
         const responseJson = await response.json();
         console.log(responseJson);
+        const roomHost = responseJson.data.roomHost;
+        if (roomHost === 'self'){
+          setIsMatching(true);
+          const fetchPromise = await fetch('http://localhost:3003/match/sync-with-room-partner', {headers, signal});
+          const response = await fetchPromise;
+          console.log('room host self');
+          const responseJson = await response.json();
+          console.log(responseJson);
+          
+        }
+        else{
+          setIsMatching(true);
+          const fetchPromise = await fetch(`http://localhost:3003/match/sync-with-room-host/${roomHost}`, {headers, signal});
+          const response = await fetchPromise;
+          console.log('room host other')
+          const responseJson = await response.json();
+          console.log(responseJson);
+          if (response.status === 409) {
+            roomHostAbortController.abort();
+            setIsMatching(false);
+          }
+        }
       }
-      else{
-        const { fetchPromise, abortController } = await fetchWithAuth(`http://localhost:3003/match/sync-with-room-host/${roomHost}`);
-        const response = await fetchPromise;
-        console.log('room host other')
-        const responseJson = await response.json();
-        console.log(responseJson);
+      catch(error){
+        console.log(error);
       }
     }
     fetchMatch();
+  };
+
+  const handleCancelMatch = () => {
+    roomHostAbortController.abort();
+    setIsMatching(false);
   };
 
   const handleSelectQuestion = (question) => {
@@ -147,10 +156,16 @@ const MatchPage = () => {
         {/* Match Random Question Button (only visible when both filters are selected) */}
         {selectedCategory && selectedComplexity && (
           <button
-            onClick={handleMatchRandomQuestion}
+            onClick={isMatching ? handleCancelMatch : handleMatchRandomQuestion}
             className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600"
           >
-            Match a Random Question in the List
+            {isMatching ? (
+              <>
+                <span className="animate-pulse">⏳</span> Cancel
+              </>
+            ) : (
+              'Match'
+            )}
           </button>
         )}
 
@@ -190,20 +205,30 @@ const MatchPage = () => {
         </table>
       )}
 
-      {/* Selected Question Display (optional) */}
-      {selectedQuestion && (
-        <div className="mt-4">
-          <h3 className="text-xl font-bold">Matched Question</h3>
-          <div>
-            <h4>{selectedQuestion.title}</h4>
-            <p>{selectedQuestion.description}</p>
-            <p><strong>Complexity:</strong> {selectedQuestion.complexity}</p>
-            <p><strong>Categories:</strong> {selectedQuestion.categories.join(", ")}</p>
-            <p><strong>ID:</strong> {selectedQuestion._id}</p> {/* This is for backend logic, not shown to user */}
-            <a href={selectedQuestion.link} target="_blank" rel="noopener noreferrer" className="text-blue-600">View on LeetCode</a>
-          </div>
-        </div>
-      )}
+    {/* Selected Question Display (optional) */}
+    {selectedQuestion && (
+      <div className="mt-4">
+        <h3 className="text-xl font-bold mb-2">Matched Question</h3>
+        <table className="table-auto border-collapse border border-gray-400 w-full">
+          <thead>
+              <tr className="bg-gray-100">
+                <th className="border p-2">Title</th>
+                <th className="border p-2">Description</th>
+                <th className="border p-2">Complexity</th>
+                <th className="border p-2">Category</th>
+              </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="border px-4 py-2">{selectedQuestion.title}</td>
+              <td className="border px-4 py-2">{selectedQuestion.description}</td>
+              <td className="border px-4 py-2">{selectedQuestion.complexity}</td>
+              <td className="border px-4 py-2">{selectedQuestion.categories.join(", ")}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    )}
     </div>
   );
 };

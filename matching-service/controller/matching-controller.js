@@ -8,10 +8,7 @@ import { match } from "assert";
 
 
 const connection = await amqp.connect("amqp://localhost");
-const queueChannelMap = new Map(); // maps queue to channel
 const queues = new Map();
-
-const wss = new WebSocketServer({ port: 8080 });
 const channel = await connection.createChannel();
 const roomPartnerExpiry = 1000 * 30; // 10 seconds
 const roomHostExpiry =  1000 * 30; // 30 seconds
@@ -107,22 +104,29 @@ export async function syncWithRoomPartner(req, res){
   try{
     const {id, username, email} = req.user;
     await createRoomHostQueue(id);
-    let consumerTag;
+    const consumerTag = `consumer-${id}`;
 
     const timeout = setTimeout(() => {
       console.log(`syncWithRoomPartner timed out for ${username}`);
-      console.log('to cancel consumerTag: ', consumerTag.consumerTag);
-      channel.cancel(consumerTag.consumerTag);
-      return res.status(408).json({message: "wait timed out"});
+      console.log(`timouet cancel consumerTag ${consumerTag} for ${username}`);
+      channel.cancel(consumerTag)
+      .then(() => {
+        console.log('return timeout')
+        return res.status(408).json({message: "wait timed out"});
+      })
+      .catch((error) => {
+        console.log(error);
+      })
+      
     }, roomHostExpiry)
-
-    consumerTag = await channel.consume(id, (message) => {
+    
+    await channel.consume(id, (message) => {
       clearTimeout(timeout);
       console.log("syncWithRoomPartner received message: ", message.content.toString());
       channel.ack(message);
 
       // might need this to terminate the consumer. otherwise, would have error of "Cannot set headers after they are sent" for subsequent requests
-      channel.cancel(message.fields.consumerTag);
+      channel.cancel(consumerTag);
       const partnerQueue = message.properties.replyTo;
       console.log(`room host partner: ${partnerQueue}`);
       const matchMessage = JSON.stringify({ id });
@@ -132,7 +136,7 @@ export async function syncWithRoomPartner(req, res){
       channel.sendToQueue(partnerQueue, Buffer.from(matchMessage));
       console.log('room host to room partner sync sent');
       return res.status(200).json({ message: "Success", data: message.content.toString() });
-    });
+    }, { consumerTag });
   }
   catch (err){
     console.error(err.message);

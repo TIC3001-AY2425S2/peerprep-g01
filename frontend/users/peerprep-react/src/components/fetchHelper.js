@@ -1,5 +1,6 @@
-export async function fetchWithAuth(url, options = {}) {
-  const abortController = new AbortController(); // Create an AbortController
+export async function fetchWithAuth(url, options = {}, existingController) {
+  // const abortController = new AbortController(); // Create an AbortController
+  const abortController = new AbortController;
   const signal = abortController.signal;
 
   // Get the token from localStorage (or your preferred storage)
