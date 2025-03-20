@@ -4,12 +4,12 @@ import { findUserByEmail as _findUserByEmail, findUserByUsername as _findUserByU
 import { formatUserResponse } from "./user-controller.js";
 
 export async function handleLogin(req, res) {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
   console.log("Request body:", req.body)
-  if (username && password) {
+  if (email && password) {
     try {
-      const user = await _findUserByEmail(username);
+      const user = await _findUserByEmail(email);
       if (!user) {
         return res.status(401).json({ message: "Wrong email and/or password" });
       }

@@ -78,12 +78,8 @@ export async function updateUser(req, res) {
         return res.status(404).json({ message: `User ${userId} not found` });
       }
       if (username || email) {
-        let existingUser = await _findUserByUsername(username);
-        if (existingUser && existingUser.id !== userId) {
-          return res.status(409).json({ message: "username already exists" });
-        }
-        existingUser = await _findUserByEmail(email);
-        if (existingUser && existingUser.id !== userId) {
+        const existingEmail = await _findUserByEmail(email);
+        if (existingEmail && existingUser.id !== userId) {
           return res.status(409).json({ message: "email already exists" });
         }
       }

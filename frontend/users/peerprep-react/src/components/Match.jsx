@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { fetchWithAuth } from './fetchHelper'; // Import the helper function
-import { jwtDecode } from "jwt-decode";
-
 
 const MatchPage = () => {
   const [allQuestions, setAllQuestions] = useState([]);
@@ -12,11 +10,6 @@ const MatchPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedComplexity, setSelectedComplexity] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
-  const [ws, setWs] = useState(null);
-  const [message, setMessage] = useState("");
-  const [showMessage, setShowMessage] = useState(false);
-
-  const jwtToken = localStorage.getItem("token");
 
   useEffect(() => {
     // Use the helper function to make a fetch request with Authorization header
