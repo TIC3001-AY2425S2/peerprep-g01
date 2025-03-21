@@ -1,6 +1,7 @@
 import express from "express";
 
 import {
+  cancelWait,
   //createMatch,
   matchByCategoryComplexity,
   syncWithRoomHost,
@@ -16,6 +17,7 @@ const router = express.Router();
 router.get("/find-match/:category/:complexity", verifyAccessToken, matchByCategoryComplexity);
 router.get("/sync-with-room-partner", verifyAccessToken, syncWithRoomPartner);
 router.get("/sync-with-room-host/:roomHostId", verifyAccessToken, syncWithRoomHost);
+router.delete("/sync-with-room-partner/cancel", verifyAccessToken, cancelWait);
 //router.get("/wait-match/:id", verifyAccessToken, waitMatch);
 //router.get("/find-match/:id", verifyAccessToken, findMatch);
 

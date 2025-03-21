@@ -73,35 +73,33 @@ const MatchPage = () => {
     console.log(randomQuestion);
     const fetchMatch = async() => {
       try{
-        // const abortController = new AbortController();
-        // console.log('match.jsx abort controller: ', abortController);
         const signal = roomHostAbortController.signal;
         const fetchPromise = await fetch(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`, { headers, signal });
-        //roomHostAbortController.abort();
         const response = await fetchPromise;
         const responseJson = await response.json();
         console.log(responseJson);
         const roomHost = responseJson.data.roomHost;
         if (roomHost === 'self'){
-          setIsMatching(true);
           const fetchPromise = await fetch('http://localhost:3003/match/sync-with-room-partner', {headers, signal});
           const response = await fetchPromise;
           console.log('room host self');
           const responseJson = await response.json();
           console.log(responseJson);
-          
+          if (response.status === 408){
+            setIsMatching(false);
+          }
+          setIsMatching(true);
         }
         else{
-          setIsMatching(true);
           const fetchPromise = await fetch(`http://localhost:3003/match/sync-with-room-host/${roomHost}`, {headers, signal});
           const response = await fetchPromise;
           console.log('room host other')
           const responseJson = await response.json();
           console.log(responseJson);
           if (response.status === 409) {
-            roomHostAbortController.abort();
             setIsMatching(false);
           }
+          setIsMatching(true);
         }
       }
       catch(error){
@@ -113,7 +111,16 @@ const MatchPage = () => {
 
   const handleCancelMatch = () => {
     roomHostAbortController.abort();
+    // const cancelMatch = async() => {
+    //   const fetchPromise = await fetch(`http://localhost:3003/match/sync-with-room-partner/cancel`, {method: 'DELETE', headers});
+    //   const response = await fetchPromise;
+    //   if (response.status === 200){
+    //     console.log('cancel');
+    //   }
+    // }
+    // cancelMatch();
     setIsMatching(false);
+    setSelectedQuestion(null);
   };
 
   const handleSelectQuestion = (question) => {

@@ -2,17 +2,38 @@
 //const amqp = require("amqplib");
 import amqp from "amqplib";
 import { WebSocketServer } from "ws";
-import jwt from "jsonwebtoken";
-import { randomUUID } from "crypto";
-import { match } from "assert";
-
 
 const connection = await amqp.connect("amqp://localhost");
 const queues = new Map();
 const channel = await connection.createChannel();
 const roomPartnerExpiry = 1000 * 30; // 10 seconds
-const roomHostExpiry =  1000 * 30; // 30 seconds
+const roomHostExpiry =  1000 * 10; // 30 seconds
 const matchExpire = 1000 * 30; // 30 seconds
+
+const wss = new WebSocket.Server({ server });
+wss.on('connection', (ws) => {
+  console.log('Client connected');
+
+  // Send a welcome message to the client
+  ws.send('Welcome to the WebSocket server!');
+
+  // Handle incoming messages from clients
+  ws.on('message', (message) => {
+    console.log(`Received message: ${message}`);
+    // Respond to the client
+    ws.send(`You said: ${message}`);
+  });
+
+  // Handle WebSocket close event
+  ws.on('close', () => {
+    console.log('Client disconnected');
+  });
+
+  // Handle WebSocket error event
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
+  });
+});
 
 export async function matchByCategoryComplexity(req, res) {
   try {
@@ -82,8 +103,6 @@ export async function syncWithRoomHost(req, res){
         return res.status(409).json({ message: "Match conflict" });
       }
     });
-
-
   }
   catch (err){
     console.log(err.message);
@@ -101,46 +120,66 @@ export async function syncWithRoomPartner(req, res){
   // 5. Room Host ensure that the Room Partner queue is available
   // 6. Room Host send sync message to the Room Partner queue
   // 7. Room Partner wait for sync message from Room Host
+  let consumerTag;
+  console.log("sync with room partner")
   try{
     const {id, username, email} = req.user;
+    consumerTag = `consumer-${id}`;
     await createRoomHostQueue(id);
-    const consumerTag = `consumer-${id}`;
-
-    const timeout = setTimeout(() => {
-      console.log(`syncWithRoomPartner timed out for ${username}`);
-      console.log(`timouet cancel consumerTag ${consumerTag} for ${username}`);
-      channel.cancel(consumerTag)
-      .then(() => {
-        console.log('return timeout')
-        return res.status(408).json({message: "wait timed out"});
-      })
-      .catch((error) => {
-        console.log(error);
-      })
-      
-    }, roomHostExpiry)
     
-    await channel.consume(id, (message) => {
-      clearTimeout(timeout);
-      console.log("syncWithRoomPartner received message: ", message.content.toString());
-      channel.ack(message);
+    const timeout = setTimeout(async () => {
+      console.log(`syncWithRoomPartner timed out for ${username}`);
+      console.log(`timeout cancel consumerTag ${consumerTag} for ${username}`);
+      await channel.cancel(consumerTag);
+      console.log('return timeout');
+      return res.status(408).json({message: "wait timed out"});
+    }, roomHostExpiry)
 
-      // might need this to terminate the consumer. otherwise, would have error of "Cannot set headers after they are sent" for subsequent requests
-      channel.cancel(consumerTag);
-      const partnerQueue = message.properties.replyTo;
-      console.log(`room host partner: ${partnerQueue}`);
-      const matchMessage = JSON.stringify({ id });
-      if (id === partnerQueue){
-        return res.status(409).json({ message: "Match conflict" });
+    await channel.cancel(consumerTag);
+    await channel.consume(id, (message) => {
+      const myconsume = async() => {
+        try{
+          clearTimeout(timeout);
+          console.log("syncWithRoomPartner received message: ", message.content.toString());
+          channel.ack(message);
+  
+          // might need this to terminate the consumer. otherwise, would have error of "Cannot set headers after they are sent" for subsequent requests
+          await channel.cancel(consumerTag);
+          const partnerQueue = message.properties.replyTo;
+          console.log(`room host partner: ${partnerQueue}`);
+          const matchMessage = JSON.stringify({ id });
+          if (id === partnerQueue){
+            return res.status(409).json({ message: "Match conflict" });
+          }
+          channel.sendToQueue(partnerQueue, Buffer.from(matchMessage));
+          console.log('room host to room partner sync sent');
+          return res.status(200).json({ message: "Success", data: message.content.toString() });
+        }
+        catch(err){
+          console.error('syncWithRoomPartner consume error', err.message);
+          await channel.cancel(consumerTag);
+        }
+        myconsume();
       }
-      channel.sendToQueue(partnerQueue, Buffer.from(matchMessage));
-      console.log('room host to room partner sync sent');
-      return res.status(200).json({ message: "Success", data: message.content.toString() });
+      
     }, { consumerTag });
   }
   catch (err){
     console.error(err.message);
-    channel.cancel(consumerTag.consumerTag);
+    await channel.cancel(consumerTag);
+    return res.status(500).json({message: "server error"});
+  }
+}
+
+export async function cancelWait(req, res){
+  try{
+    const {id, username, email} = req.user;
+    const consumerTag = `consumer-${id}`;
+    await channel.cancel(consumerTag);
+    return res.status(200).json({message: "Success", data: ""});
+  }
+  catch(err){
+    console.log(err.message);
     return res.status(500).json({message: "server error"});
   }
 }
