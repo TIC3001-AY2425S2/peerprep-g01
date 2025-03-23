@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { fetchWithAuth } from './fetchHelper'; // Import the helper function
+import { io, Socket } from 'socket.io-client';
 
 const MatchPage = () => {
   const [allQuestions, setAllQuestions] = useState([]);
@@ -10,13 +10,18 @@ const MatchPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedComplexity, setSelectedComplexity] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
-  const [isMatching, setIsMatching] = useState(false);
+  // const [isMatching, setIsMatching] = useState(false);
+  const [matchCode, setMatchCode] = useState(0);
+  const matchSyncSocket = useRef(null);
+  const matchPartner = useRef(null);
+  // const [roomHostAbortController, setRoomHostAbortController] = useState(null); // Store the controller here
+  
   const token = localStorage.getItem('token')
   const headers = {
     ...(token && { 'Authorization': `Bearer ${token}` }), // If token exists, copy the 'Authorization': `Bearer ${token}` to the header dict
     //...options.headers, // copy other headers to header dict
   };
-  const [roomHostAbortController, setRoomHostAbortController] = useState(null); // Store the controller here
+  
 
   useEffect(() => {
     // Use the helper function to make a fetch request with Authorization header
@@ -58,13 +63,33 @@ const MatchPage = () => {
   useEffect(() => {
     if (selectedComplexity) {
       const filtered = allQuestions.filter((q) => q.complexity === selectedComplexity);
+      // setIsMatching(false);
+      setMatchCode(0);
       setFilteredQuestions(filtered);
+      
     }
   }, [selectedComplexity, allQuestions]);
 
+  useEffect(() => {
+    if (selectedComplexity) {
+      const filtered = allQuestions.filter((q) => q.complexity === selectedComplexity);
+      // setIsMatching(false);
+      setMatchCode(0);
+      setFilteredQuestions(filtered);
+      
+    }
+  }, [selectedComplexity, allQuestions]);
+
+  useEffect(() => {
+    
+    
+      
+    
+  }, [matchCode]);
+
   const handleMatchRandomQuestion = () => {
-    const roomHostAbortController = new AbortController();
-    setRoomHostAbortController(roomHostAbortController); 
+    // const roomHostAbortController = new AbortController();
+    // setRoomHostAbortController(roomHostAbortController); 
     console.log("Matching a random question...");
     const randomQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
     setSelectedQuestion(randomQuestion);  // Match a random question
@@ -73,58 +98,94 @@ const MatchPage = () => {
     console.log(randomQuestion);
     const fetchMatch = async() => {
       try{
-        const signal = roomHostAbortController.signal;
-        const fetchPromise = await fetch(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`, { headers, signal });
+        // const signal = roomHostAbortController.signal;
+        setMatchCode(202);
+        // setIsMatching(true);
+        const fetchPromise = await fetch(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`, { headers });
         const response = await fetchPromise;
         const responseJson = await response.json();
-        console.log(responseJson);
+        console.log("findmatch responseJson: ", responseJson)
         const roomHost = responseJson.data.roomHost;
+        matchSyncSocket.current = io("http://localhost:3003", {
+          auth: {
+              token: token, // Send the token in the handshake
+          },
+          reconnection: false,
+        });
+
+        matchSyncSocket.current.onerror('connect_error', (error) => {
+          console.error('Connection error:', error);
+          matchSyncSocket.current.disconnect();
+          setMatchCode(500);
+          // setIsMatching(false);
+        });
+
         if (roomHost === 'self'){
-          const fetchPromise = await fetch('http://localhost:3003/match/sync-with-room-partner', {headers, signal});
-          const response = await fetchPromise;
-          console.log('room host self');
-          const responseJson = await response.json();
-          console.log(responseJson);
-          if (response.status === 408){
-            setIsMatching(false);
-          }
-          setIsMatching(true);
+          console.log("roomHost is self");
+          matchSyncSocket.current.on('connect', () => {
+            console.log('socket client connected to server: ', matchSyncSocket.current.id)
+            matchSyncSocket.current.emit('syncWithRoomPartner', 'syncWithRoomPartner');
+          })
+          
+          matchSyncSocket.current.on('syncWithRoomPartner', (message) => {
+            console.log('syncWithRoomPartner: ', message);
+            setMatchCode(message.httpCode);
+            // setIsMatching(false);
+            matchSyncSocket.current.disconnect();
+            if(message.httpCode !== 200){
+              setSelectedQuestion(null);
+            }
+            else{
+              matchPartner.current = JSON.stringify(message.data);
+            }
+            
+          });
         }
         else{
-          const fetchPromise = await fetch(`http://localhost:3003/match/sync-with-room-host/${roomHost}`, {headers, signal});
-          const response = await fetchPromise;
-          console.log('room host other')
-          const responseJson = await response.json();
-          console.log(responseJson);
-          if (response.status === 409) {
-            setIsMatching(false);
-          }
-          setIsMatching(true);
+          console.log("roomHost is not self: ", roomHost);
+          matchSyncSocket.current.on('connect', () => {
+            console.log('socket client connected to server: ', matchSyncSocket.current.id)
+            matchSyncSocket.current.emit('syncWithRoomHost', {roomHost: roomHost});
+          })
+
+          matchSyncSocket.current.onerror('connect_error', (error) => {
+            console.error('Connection error:', error);
+            matchSyncSocket.current.disconnect();
+          });
+
+          matchSyncSocket.current.on('syncWithRoomHost', (message) => {
+            console.log('syncWithRoomHost: ', message);
+            // setIsMatching(false);
+            setMatchCode(message.httpCode);
+            console.log('matchCode: ', matchCode);
+            matchSyncSocket.current.disconnect();
+            if(message.httpCode !== 200){
+              setSelectedQuestion(null);
+            }
+            else{
+              matchPartner.current = JSON.stringify(message.data);
+            }
+          });
+          
         }
       }
       catch(error){
-        console.log(error);
+        console.log('fetchMatch error: ', error.message);
       }
     }
     fetchMatch();
   };
 
   const handleCancelMatch = () => {
-    roomHostAbortController.abort();
-    // const cancelMatch = async() => {
-    //   const fetchPromise = await fetch(`http://localhost:3003/match/sync-with-room-partner/cancel`, {method: 'DELETE', headers});
-    //   const response = await fetchPromise;
-    //   if (response.status === 200){
-    //     console.log('cancel');
-    //   }
-    // }
-    // cancelMatch();
-    setIsMatching(false);
+    console.log('cancel match');
+    matchSyncSocket.current.disconnect();
+    // setIsMatching(false);
     setSelectedQuestion(null);
+    setMatchCode(499);
   };
 
   const handleSelectQuestion = (question) => {
-    setSelectedQuestion(question);
+    setSelectedQuestion(question);   
   };
 
   return (
@@ -163,10 +224,10 @@ const MatchPage = () => {
         {/* Match Random Question Button (only visible when both filters are selected) */}
         {selectedCategory && selectedComplexity && (
           <button
-            onClick={isMatching ? handleCancelMatch : handleMatchRandomQuestion}
+            onClick={(matchCode === 202) ? handleCancelMatch : handleMatchRandomQuestion}
             className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600"
           >
-            {isMatching ? (
+            {(matchCode === 202) ? (
               <>
                 <span className="animate-pulse">⏳</span> Cancel
               </>
@@ -176,6 +237,45 @@ const MatchPage = () => {
           </button>
         )}
 
+      {(matchCode !== 0) && (
+        <div className="mt-4 flex items-center space-x-2">
+          {matchCode === 200 ? (
+            <>
+              <span className="font-semibold">
+                Found Match for <span className="text-blue-600">{selectedQuestion.title}</span> with {" "}
+                <span className="font-bold">{matchPartner.current}</span>
+              </span>
+            </>
+          ) : matchCode === 408 ? (
+            <>
+              <span className="font-semibold">
+                No match found. Try again
+              </span>
+            </>
+          ) : matchCode === 409 ? (
+            <>
+              <span className="font-semibold">
+                Match conflict. Try again
+              </span>
+            </>
+          ) : matchCode === 499 ? (
+            <>
+              <span className="font-semibold">
+                Match cancelled
+              </span>
+            </>
+          ) : matchCode === 202 ? (
+            <>
+              <span className="animate-pulse text-yellow-500">⏳</span>
+              <span>Finding Match for <span className="font-semibold">{selectedQuestion.title}</span></span>
+            </>
+          ) : (
+            <>
+              <span>Other match code {matchCode}</span>
+            </>
+          )}
+        </div>
+      )}
       {/* Question Table (only show if questions are available) */}
       {selectedCategory && selectedComplexity && filteredQuestions.length > 0 && (
         <table className="w-full border-collapse border border-gray-300">
@@ -203,7 +303,7 @@ const MatchPage = () => {
                     onClick={() => handleSelectQuestion(q)}
                     className="bg-yellow-500 text-white p-2 rounded"
                   >
-                    Match this Question
+                    {/* Match this Question */}
                   </button>
                 </td>
               </tr>
@@ -211,31 +311,6 @@ const MatchPage = () => {
           </tbody>
         </table>
       )}
-
-    {/* Selected Question Display (optional) */}
-    {selectedQuestion && (
-      <div className="mt-4">
-        <h3 className="text-xl font-bold mb-2">Matched Question</h3>
-        <table className="table-auto border-collapse border border-gray-400 w-full">
-          <thead>
-              <tr className="bg-gray-100">
-                <th className="border p-2">Title</th>
-                <th className="border p-2">Description</th>
-                <th className="border p-2">Complexity</th>
-                <th className="border p-2">Category</th>
-              </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="border px-4 py-2">{selectedQuestion.title}</td>
-              <td className="border px-4 py-2">{selectedQuestion.description}</td>
-              <td className="border px-4 py-2">{selectedQuestion.complexity}</td>
-              <td className="border px-4 py-2">{selectedQuestion.categories.join(", ")}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    )}
     </div>
   );
 };

@@ -1,17 +1,3 @@
-// import React from "react";
-// import Navbar from "../components/Navbar";
-
-// const Login = () => {
-//     return (
-//         <div>
-//             <Navbar />
-//             <h1>Login</h1>
-//         </div>
-//     );
-// };
-
-// export default Login;
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
