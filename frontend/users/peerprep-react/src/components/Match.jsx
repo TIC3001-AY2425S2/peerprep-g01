@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
+import { jwtDecode } from "jwt-decode";
 
 const MatchPage = () => {
   const [allQuestions, setAllQuestions] = useState([]);
@@ -12,16 +13,19 @@ const MatchPage = () => {
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   // const [isMatching, setIsMatching] = useState(false);
   const [matchCode, setMatchCode] = useState(0);
+
+  //const [matchData, setMatchData] = useState(null);
   const matchSyncSocket = useRef(null);
-  const matchPartner = useRef(null);
+  const matchData = useRef(null);
   // const [roomHostAbortController, setRoomHostAbortController] = useState(null); // Store the controller here
   
   const token = localStorage.getItem('token')
+  const tokenDecoded = jwtDecode(token);
+  // console.log('tokenDecoded: ', tokenDecoded)
   const headers = {
     ...(token && { 'Authorization': `Bearer ${token}` }), // If token exists, copy the 'Authorization': `Bearer ${token}` to the header dict
     //...options.headers, // copy other headers to header dict
   };
-  
 
   useEffect(() => {
     // Use the helper function to make a fetch request with Authorization header
@@ -66,7 +70,6 @@ const MatchPage = () => {
       // setIsMatching(false);
       setMatchCode(0);
       setFilteredQuestions(filtered);
-      
     }
   }, [selectedComplexity, allQuestions]);
 
@@ -81,89 +84,98 @@ const MatchPage = () => {
   }, [selectedComplexity, allQuestions]);
 
   useEffect(() => {
-    
-    
-      
-    
-  }, [matchCode]);
+    console.log('matchCode changed:', JSON.stringify(matchCode));
+  }, [matchCode]);  // This will run whenever matchCode changes
+
+  useEffect(() => {
+    console.log('selectedQuestion changed:', JSON.stringify(selectedQuestion));
+  }, [selectedQuestion]);  // This will run whenever matchCode changes
+
+  useEffect(() => {
+    console.log('matchData changed:', JSON.stringify(matchData));
+  }, [matchData]);
 
   const handleMatchRandomQuestion = () => {
     // const roomHostAbortController = new AbortController();
     // setRoomHostAbortController(roomHostAbortController); 
     console.log("Matching a random question...");
+    matchData.current = null;
     const randomQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
     setSelectedQuestion(randomQuestion);  // Match a random question
     const categorySubmit = selectedCategory.toLocaleLowerCase();
     const complexitySubmit = selectedComplexity.toLocaleLowerCase();
-    console.log(randomQuestion);
+    console.log('randomQuestion: ', randomQuestion);
     const fetchMatch = async() => {
       try{
         // const signal = roomHostAbortController.signal;
-        setMatchCode(202);
-        // setIsMatching(true);
         const fetchPromise = await fetch(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`, { headers });
         const response = await fetchPromise;
         const responseJson = await response.json();
-        console.log("findmatch responseJson: ", responseJson)
-        const roomHost = responseJson.data.roomHost;
+        console.log("find-match responseJson: ", JSON.stringify(responseJson));
+        const roomHostId = responseJson.data.roomHost.id;
+        const roomHostUsername = responseJson.data.roomHost.username;
+        const roomNonce = responseJson.data.roomNonce;
+        setMatchCode(202);
         matchSyncSocket.current = io("http://localhost:3003", {
           auth: {
-              token: token, // Send the token in the handshake
+              token, // Send the token in the handshake
           },
-          reconnection: false,
+          // reconnection: true,
+          // reconnectionAttempts: 3,
+          timeout: 2000
         });
 
         matchSyncSocket.current.onerror('connect_error', (error) => {
           console.error('Connection error:', error);
           matchSyncSocket.current.disconnect();
           setMatchCode(500);
-          // setIsMatching(false);
         });
 
-        if (roomHost === 'self'){
-          console.log("roomHost is self");
+        matchSyncSocket.current.on("disconnect", (reason) => {
+          console.log("Disconnected:", reason);
+          matchSyncSocket.current.disconnect();
+          if (reason === 'transport close'){
+            setMatchCode(500);
+            return;
+          }
+        });
+
+        if (roomHostId === tokenDecoded.id){
+          console.log("i am the room host. Room data is: ", JSON.stringify(responseJson.data));
           matchSyncSocket.current.on('connect', () => {
-            console.log('socket client connected to server: ', matchSyncSocket.current.id)
-            matchSyncSocket.current.emit('syncWithRoomPartner', 'syncWithRoomPartner');
+            console.log('room host connected to socket server: ', matchSyncSocket.current.id)
+            matchSyncSocket.current.emit('syncWithRoomGuest', { data: responseJson.data });
+            console.log('syncWithRoomGuest emit: ', JSON.stringify(responseJson.data))
           })
           
-          matchSyncSocket.current.on('syncWithRoomPartner', (message) => {
-            console.log('syncWithRoomPartner: ', message);
+          matchSyncSocket.current.on('syncWithRoomGuest', (message) => {
+            console.log('syncWithRoomGuest: ', message);
             setMatchCode(message.httpCode);
-            // setIsMatching(false);
             matchSyncSocket.current.disconnect();
             if(message.httpCode !== 200){
               setSelectedQuestion(null);
             }
             else{
-              matchPartner.current = JSON.stringify(message.data);
+              matchData.current = message.data;
             }
-            
           });
         }
         else{
-          console.log("roomHost is not self: ", roomHost);
+          console.log("i am the room guest. Room data is: ", JSON.stringify(responseJson.data));
           matchSyncSocket.current.on('connect', () => {
-            console.log('socket client connected to server: ', matchSyncSocket.current.id)
-            matchSyncSocket.current.emit('syncWithRoomHost', {roomHost: roomHost});
+            console.log('room guest client connected to server: ', matchSyncSocket.current.id)
+            matchSyncSocket.current.emit('syncWithRoomHost', { data: responseJson.data});
           })
 
-          matchSyncSocket.current.onerror('connect_error', (error) => {
-            console.error('Connection error:', error);
-            matchSyncSocket.current.disconnect();
-          });
-
           matchSyncSocket.current.on('syncWithRoomHost', (message) => {
-            console.log('syncWithRoomHost: ', message);
-            // setIsMatching(false);
+            console.log('syncWithRoomHost message: ', message);
             setMatchCode(message.httpCode);
-            console.log('matchCode: ', matchCode);
             matchSyncSocket.current.disconnect();
             if(message.httpCode !== 200){
               setSelectedQuestion(null);
             }
             else{
-              matchPartner.current = JSON.stringify(message.data);
+              matchData.current = message.data;
             }
           });
           
@@ -171,6 +183,7 @@ const MatchPage = () => {
       }
       catch(error){
         console.log('fetchMatch error: ', error.message);
+        setMatchCode(500);
       }
     }
     fetchMatch();
@@ -178,7 +191,9 @@ const MatchPage = () => {
 
   const handleCancelMatch = () => {
     console.log('cancel match');
-    matchSyncSocket.current.disconnect();
+    if (matchSyncSocket){
+      matchSyncSocket.current.disconnect();
+    }
     // setIsMatching(false);
     setSelectedQuestion(null);
     setMatchCode(499);
@@ -243,7 +258,7 @@ const MatchPage = () => {
             <>
               <span className="font-semibold">
                 Found Match for <span className="text-blue-600">{selectedQuestion.title}</span> with {" "}
-                <span className="font-bold">{matchPartner.current}</span>
+                <span className="font-bold">{JSON.stringify(matchData)}</span>
               </span>
             </>
           ) : matchCode === 408 ? (
@@ -268,6 +283,10 @@ const MatchPage = () => {
             <>
               <span className="animate-pulse text-yellow-500">⏳</span>
               <span>Finding Match for <span className="font-semibold">{selectedQuestion.title}</span></span>
+            </>
+          ) : matchCode === 500 ? (
+            <>
+              <span>Connection to server error</span>
             </>
           ) : (
             <>

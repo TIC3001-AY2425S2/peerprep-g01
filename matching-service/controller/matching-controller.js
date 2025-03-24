@@ -1,4 +1,5 @@
 import amqp from "amqplib";
+import { v4 as uuidv4 } from "uuid";
 import {
   createMatch as _createMatch,
   getAllMatches as _getAllMatches,
@@ -19,21 +20,30 @@ export async function matchByCategoryComplexity(req, res) {
       queues[commonQueue] = queue;
       const message = await channel.get(commonQueue);
       if (message){
-        console.log(`${id} matched with an existing match by ${message.properties.replyTo}`);
+        const messageContent = message.content.toString();
+        const messageContentJson = JSON.parse(messageContent);
+        console.log('matchByCategoryComplexity getMessage: ', messageContent);
+        console.log(`roomGuest ${username} matched with roomHost ${messageContentJson.roomHost.username}`);
         channel.ack(message);
-        return res.status(200).json( {message: "Success", data: {"roomHost": message.properties.replyTo} });
+        return res.status(200).json({ message: "Success", data: messageContentJson });
       }
       else{
-        console.log(`creating match by ${id}`);
-        const matchMessage = JSON.stringify({ id, username });
-        channel.sendToQueue(commonQueue, Buffer.from(matchMessage), { replyTo: id });
-        return res.status(200).json( { message: "Success", data:  {"roomHost": 'self'} });
+        const roomNonce = uuidv4();
+        console.log(`creating match by ${id} with room nonce ${roomNonce}`);
+        const messageContentJson = { roomHost: { id, username }, roomNonce };
+        // channel.sendToQueue(commonQueue, Buffer.from(JSON.stringify(matchMessage)), { replyTo: id });
+        channel.sendToQueue(commonQueue, Buffer.from(JSON.stringify(messageContentJson)));
+        return res.status(200).json( { message: "Success", data: messageContentJson });
       }
-  } 
+  }
   catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Error matching. Please try again" });
   }
+}
+
+export async function createMatch(req, res) {
+
 }
 
 export { channel };

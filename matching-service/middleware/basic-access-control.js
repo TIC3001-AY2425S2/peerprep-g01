@@ -40,9 +40,10 @@ export function verifyIsAdmin(req, res, next) {
 
 export function verifySocketAccessToken(socket, next) {
     const token = socket.handshake.auth.token; // Getting token from socket handshake
+    const roomNonce = socket.handshake.auth.roomNonce;
     console.log('verifySocketAccessToken in progress');
     if (!token) {
-        console.log('verifySocketAccessToken fail');
+        console.log('verifySocketAccessToken Authorization token not found');
         // socket.emit('verifySocketAccessToken', 'Fail');
         // socket.disconnect();
         return next(new Error("Authorization token not found"));
