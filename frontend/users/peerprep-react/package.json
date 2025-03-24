@@ -10,11 +10,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@lexical/react": "^0.28.0",
+    "@liveblocks/client": "^2.22.0",
+    "@liveblocks/react": "^2.22.0",
     "axios": "^1.7.9",
     "jwt-decode": "^4.0.0",
+    "lexical": "^0.28.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.1.5"
+    "react-router-dom": "^7.1.5",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",

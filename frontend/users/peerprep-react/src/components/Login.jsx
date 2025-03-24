@@ -1,17 +1,3 @@
-// import React from "react";
-// import Navbar from "../components/Navbar";
-
-// const Login = () => {
-//     return (
-//         <div>
-//             <Navbar />
-//             <h1>Login</h1>
-//         </div>
-//     );
-// };
-
-// export default Login;
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
@@ -59,7 +45,7 @@ const Login = () => {
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="flex flex-col">
-            <label className="text-gray-700 font-medium mb-1">Email/Username</label>
+            <label className="text-gray-700 font-medium mb-1">Email</label>
             <input
               type="email"
               name="email"

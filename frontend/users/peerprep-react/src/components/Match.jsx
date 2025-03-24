@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { fetchWithAuth } from './fetchHelper'; // Import the helper function
+import { io } from 'socket.io-client';
 import { jwtDecode } from "jwt-decode";
-
 
 const MatchPage = () => {
   const [allQuestions, setAllQuestions] = useState([]);
@@ -12,72 +11,196 @@ const MatchPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedComplexity, setSelectedComplexity] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
-  const [ws, setWs] = useState(null);
-  const [message, setMessage] = useState("");
-  const [showMessage, setShowMessage] = useState(false);
+  // const [isMatching, setIsMatching] = useState(false);
+  const [matchCode, setMatchCode] = useState(0);
 
-  const jwtToken = localStorage.getItem("token");
+  //const [matchData, setMatchData] = useState(null);
+  const matchSyncSocket = useRef(null);
+  const matchData = useRef(null);
+  // const [roomHostAbortController, setRoomHostAbortController] = useState(null); // Store the controller here
+  
+  const token = localStorage.getItem('token')
+  const tokenDecoded = jwtDecode(token);
+  // console.log('tokenDecoded: ', tokenDecoded)
+  const headers = {
+    ...(token && { 'Authorization': `Bearer ${token}` }), // If token exists, copy the 'Authorization': `Bearer ${token}` to the header dict
+    //...options.headers, // copy other headers to header dict
+  };
 
   useEffect(() => {
     // Use the helper function to make a fetch request with Authorization header
-    fetchWithAuth('http://localhost:3002/questions/category')
-      .then((responseData) => {
-        setCategories(responseData.data);
-      })
-      .catch(() => {
-        console.error('Error fetching categories');
-      });
+    const fetchCategories = async() => {
+      try {
+        const fetchPromise = await fetch('http://localhost:3002/questions/category', { headers });
+        const response = await fetchPromise;
+        const responseJson = await response.json();
+        console.log(responseJson);
+        setCategories(responseJson.data);
+      }
+      catch (err){
+        console.error(err.message);
+      }
+    }
+    fetchCategories();
   }, []);
 
   useEffect(() => {
-    if (!selectedCategory) return;
-    fetchWithAuth(`http://localhost:3002/questions/category/${selectedCategory}`)
-      .then((responseData) => {
-        setAllQuestions(responseData.data);
-        const uniqueComplexities = Array.from(new Set(responseData.data.map(q => q.complexity)));
+    const fetchComplexityOfSelectedCategory = async() => {
+      try{
+        if (!selectedCategory) return;
+        const fetchPromise = await fetch(`http://localhost:3002/questions/category/${selectedCategory}`, { headers });
+        const response = await fetchPromise;
+        const responseJson = await response.json();
+        console.log(responseJson);
+        setAllQuestions(responseJson.data);
+        const uniqueComplexities = Array.from(new Set(responseJson.data.map(q => q.complexity)));
         setComplexities(uniqueComplexities);
-        setSelectedComplexity(""); // Reset complexity selection when category changes
-      })
-      .catch(() => {
-        console.error("Error fetching questions");
-      })
+        setSelectedComplexity("");
+      }
+      catch (err){
+        console.error(err.message);
+      }
+    }
+    fetchComplexityOfSelectedCategory();
     }, [selectedCategory]);
 
   useEffect(() => {
     if (selectedComplexity) {
       const filtered = allQuestions.filter((q) => q.complexity === selectedComplexity);
+      // setIsMatching(false);
+      setMatchCode(0);
       setFilteredQuestions(filtered);
     }
   }, [selectedComplexity, allQuestions]);
 
+  useEffect(() => {
+    if (selectedComplexity) {
+      const filtered = allQuestions.filter((q) => q.complexity === selectedComplexity);
+      // setIsMatching(false);
+      setMatchCode(0);
+      setFilteredQuestions(filtered);
+      
+    }
+  }, [selectedComplexity, allQuestions]);
+
+  useEffect(() => {
+    console.log('matchCode changed:', JSON.stringify(matchCode));
+  }, [matchCode]);  // This will run whenever matchCode changes
+
+  useEffect(() => {
+    console.log('selectedQuestion changed:', JSON.stringify(selectedQuestion));
+  }, [selectedQuestion]);  // This will run whenever matchCode changes
+
+  useEffect(() => {
+    console.log('matchData changed:', JSON.stringify(matchData));
+  }, [matchData]);
+
   const handleMatchRandomQuestion = () => {
-    // Placeholder for backend match logic
+    // const roomHostAbortController = new AbortController();
+    // setRoomHostAbortController(roomHostAbortController); 
     console.log("Matching a random question...");
+    matchData.current = null;
     const randomQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
     setSelectedQuestion(randomQuestion);  // Match a random question
     const categorySubmit = selectedCategory.toLocaleLowerCase();
     const complexitySubmit = selectedComplexity.toLocaleLowerCase();
-    console.log(randomQuestion);
-    fetchWithAuth(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`)
-      .then((responseData) => {
-        const data = responseData.data;
-        if (data === "wait_partner"){
-          fetchWithAuth('http://localhost:3003/match/sync-with-room-partner', {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
+    console.log('randomQuestion: ', randomQuestion);
+    const fetchMatch = async() => {
+      try{
+        // const signal = roomHostAbortController.signal;
+        const fetchPromise = await fetch(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`, { headers });
+        const response = await fetchPromise;
+        const responseJson = await response.json();
+        console.log("find-match responseJson: ", JSON.stringify(responseJson));
+        const roomHostId = responseJson.data.roomHost.id;
+        const roomHostUsername = responseJson.data.roomHost.username;
+        const roomNonce = responseJson.data.roomNonce;
+        setMatchCode(202);
+        matchSyncSocket.current = io("http://localhost:3003", {
+          auth: {
+              token, // Send the token in the handshake
+          },
+          // reconnection: true,
+          // reconnectionAttempts: 3,
+          timeout: 2000
+        });
+
+        matchSyncSocket.current.onerror('connect_error', (error) => {
+          console.error('Connection error:', error);
+          matchSyncSocket.current.disconnect();
+          setMatchCode(500);
+        });
+
+        matchSyncSocket.current.on("disconnect", (reason) => {
+          console.log("Disconnected:", reason);
+          matchSyncSocket.current.disconnect();
+          if (reason === 'transport close'){
+            setMatchCode(500);
+            return;
+          }
+        });
+
+        if (roomHostId === tokenDecoded.id){
+          console.log("i am the room host. Room data is: ", JSON.stringify(responseJson.data));
+          matchSyncSocket.current.on('connect', () => {
+            console.log('room host connected to socket server: ', matchSyncSocket.current.id)
+            matchSyncSocket.current.emit('syncWithRoomGuest', { data: responseJson.data });
+            console.log('syncWithRoomGuest emit: ', JSON.stringify(responseJson.data))
+          })
+          
+          matchSyncSocket.current.on('syncWithRoomGuest', (message) => {
+            console.log('syncWithRoomGuest: ', message);
+            setMatchCode(message.httpCode);
+            matchSyncSocket.current.disconnect();
+            if(message.httpCode !== 200){
+              setSelectedQuestion(null);
+            }
+            else{
+              matchData.current = message.data;
             }
           });
         }
-      })
-      .catch(() => {
-        console.error("Error matching random question");
-      })
+        else{
+          console.log("i am the room guest. Room data is: ", JSON.stringify(responseJson.data));
+          matchSyncSocket.current.on('connect', () => {
+            console.log('room guest client connected to server: ', matchSyncSocket.current.id)
+            matchSyncSocket.current.emit('syncWithRoomHost', { data: responseJson.data});
+          })
 
+          matchSyncSocket.current.on('syncWithRoomHost', (message) => {
+            console.log('syncWithRoomHost message: ', message);
+            setMatchCode(message.httpCode);
+            matchSyncSocket.current.disconnect();
+            if(message.httpCode !== 200){
+              setSelectedQuestion(null);
+            }
+            else{
+              matchData.current = message.data;
+            }
+          });
+          
+        }
+      }
+      catch(error){
+        console.log('fetchMatch error: ', error.message);
+        setMatchCode(500);
+      }
+    }
+    fetchMatch();
+  };
+
+  const handleCancelMatch = () => {
+    console.log('cancel match');
+    if (matchSyncSocket){
+      matchSyncSocket.current.disconnect();
+    }
+    // setIsMatching(false);
+    setSelectedQuestion(null);
+    setMatchCode(499);
   };
 
   const handleSelectQuestion = (question) => {
-    setSelectedQuestion(question);
+    setSelectedQuestion(question);   
   };
 
   return (
@@ -116,13 +239,62 @@ const MatchPage = () => {
         {/* Match Random Question Button (only visible when both filters are selected) */}
         {selectedCategory && selectedComplexity && (
           <button
-            onClick={handleMatchRandomQuestion}
+            onClick={(matchCode === 202) ? handleCancelMatch : handleMatchRandomQuestion}
             className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600"
           >
-            Match a Random Question in the List
+            {(matchCode === 202) ? (
+              <>
+                <span className="animate-pulse">⏳</span> Cancel
+              </>
+            ) : (
+              'Match'
+            )}
           </button>
         )}
 
+      {(matchCode !== 0) && (
+        <div className="mt-4 flex items-center space-x-2">
+          {matchCode === 200 ? (
+            <>
+              <span className="font-semibold">
+                Found Match for <span className="text-blue-600">{selectedQuestion.title}</span> with {" "}
+                <span className="font-bold">{JSON.stringify(matchData)}</span>
+              </span>
+            </>
+          ) : matchCode === 408 ? (
+            <>
+              <span className="font-semibold">
+                No match found. Try again
+              </span>
+            </>
+          ) : matchCode === 409 ? (
+            <>
+              <span className="font-semibold">
+                Match conflict. Try again
+              </span>
+            </>
+          ) : matchCode === 499 ? (
+            <>
+              <span className="font-semibold">
+                Match cancelled
+              </span>
+            </>
+          ) : matchCode === 202 ? (
+            <>
+              <span className="animate-pulse text-yellow-500">⏳</span>
+              <span>Finding Match for <span className="font-semibold">{selectedQuestion.title}</span></span>
+            </>
+          ) : matchCode === 500 ? (
+            <>
+              <span>Connection to server error</span>
+            </>
+          ) : (
+            <>
+              <span>Other match code {matchCode}</span>
+            </>
+          )}
+        </div>
+      )}
       {/* Question Table (only show if questions are available) */}
       {selectedCategory && selectedComplexity && filteredQuestions.length > 0 && (
         <table className="w-full border-collapse border border-gray-300">
@@ -150,28 +322,13 @@ const MatchPage = () => {
                     onClick={() => handleSelectQuestion(q)}
                     className="bg-yellow-500 text-white p-2 rounded"
                   >
-                    Match this Question
+                    {/* Match this Question */}
                   </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      )}
-
-      {/* Selected Question Display (optional) */}
-      {selectedQuestion && (
-        <div className="mt-4">
-          <h3 className="text-xl font-bold">Matched Question</h3>
-          <div>
-            <h4>{selectedQuestion.title}</h4>
-            <p>{selectedQuestion.description}</p>
-            <p><strong>Complexity:</strong> {selectedQuestion.complexity}</p>
-            <p><strong>Categories:</strong> {selectedQuestion.categories.join(", ")}</p>
-            <p><strong>ID:</strong> {selectedQuestion._id}</p> {/* This is for backend logic, not shown to user */}
-            <a href={selectedQuestion.link} target="_blank" rel="noopener noreferrer" className="text-blue-600">View on LeetCode</a>
-          </div>
-        </div>
       )}
     </div>
   );

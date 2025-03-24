@@ -37,27 +37,3 @@ export function verifyIsAdmin(req, res, next) {
     }
     //next();
 }
-
-export function verifySocketAccessToken(socket, next) {
-    const token = socket.handshake.auth.token; // Getting token from socket handshake
-    const roomNonce = socket.handshake.auth.roomNonce;
-    console.log('verifySocketAccessToken in progress');
-    if (!token) {
-        console.log('verifySocketAccessToken Authorization token not found');
-        // socket.emit('verifySocketAccessToken', 'Fail');
-        // socket.disconnect();
-        return next(new Error("Authorization token not found"));
-    }
-
-    // Verify token using JWT_SECRET (you can keep it in environment variables)
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) {
-            return next(new Error("JWT token verification failed"));
-        }
-
-        console.log('verifySocketAccessToken OK');
-        // Attach the decoded user to the socket object
-        socket.user = { id: user.id, username: user.username, email: user.email };
-        next();
-    });
-}
