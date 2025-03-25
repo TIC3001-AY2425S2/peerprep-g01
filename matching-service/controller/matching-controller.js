@@ -6,9 +6,39 @@ import {
   findMatchByQuestionId as _findMatchByQuestionId,
 } from "../model/repository.js";
 
-const connection = await amqp.connect("amqp://localhost");
+const RABBITMQ_HOST = process.env.RABBITMQ_HOST || 'localhost';
+const RABBITMQ_PORT = process.env.RABBITMQ_PORT || 5672;
+const RABBITMQ_USER = process.env.RABBITMQ_DEFAULT_USER || 'guest';
+const RABBITMQ_PASS = process.env.RABBITMQ_DEFAULT_PASS || 'guest';
+
+let connection;
+let channel;
 const queues = new Map();
-const channel = await connection.createChannel();
+
+// Function to connect to RabbitMQ with retries
+async function connectToRabbitMQ(retries = 5, interval = 5000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      console.log(`Attempting to connect to RabbitMQ (attempt ${i + 1}/${retries})...`);
+      connection = await amqp.connect(`amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@${RABBITMQ_HOST}:${RABBITMQ_PORT}`);
+      channel = await connection.createChannel();
+      console.log('Successfully connected to RabbitMQ');
+      return;
+    } catch (error) {
+      console.log(`Failed to connect to RabbitMQ (attempt ${i + 1}/${retries}):`, error.message);
+      if (i < retries - 1) {
+        console.log(`Retrying in ${interval/1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, interval));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
+// Initialize connection
+await connectToRabbitMQ();
+
 const matchExpire = 1000 * 30; // 30 seconds
 
 export async function matchByCategoryComplexity(req, res) {
@@ -31,7 +61,6 @@ export async function matchByCategoryComplexity(req, res) {
         const roomNonce = uuidv4();
         console.log(`creating match by ${id} with room nonce ${roomNonce}`);
         const messageContentJson = { roomHost: { id, username }, roomNonce };
-        // channel.sendToQueue(commonQueue, Buffer.from(JSON.stringify(matchMessage)), { replyTo: id });
         channel.sendToQueue(commonQueue, Buffer.from(JSON.stringify(messageContentJson)));
         return res.status(200).json( { message: "Success", data: messageContentJson });
       }
