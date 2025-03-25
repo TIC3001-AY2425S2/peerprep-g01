@@ -1,4 +1,3 @@
-import bcrypt from "bcrypt";
 import { isValidObjectId } from "mongoose";
 import {
   createQuestion as _createQuestion,
@@ -193,7 +192,7 @@ export async function updateQuestion(req, res) {
         });
     }
     catch (err) {
-        console.error(err);
+        console.error(err.message);
         return res.status(500).json({ message: err.message });
     }
 }
