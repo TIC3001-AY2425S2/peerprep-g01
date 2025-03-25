@@ -1,10 +1,7 @@
 import { Server } from 'socket.io';
 import { channel  } from "./matching-controller.js";
 import { verifySocketAccessToken } from '../middleware/basic-access-control.js';
-import jwt from "jsonwebtoken";
 
-// Store connected clients
-// let clients = new Map();
 const matchHostExpiry =  1000 * 30; // 30 seconds
 const matchPartnerExpiry = 1000 * 10; // 10 seconds
 
