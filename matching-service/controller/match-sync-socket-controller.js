@@ -32,7 +32,7 @@ const initializeSocket = (httpServer) => {
     ws.on('syncWithRoomGuest', async (wsMessage) => {
       try{
         console.log('syncWithRoomGuest message: ', JSON.stringify(wsMessage));
-        const wsMsgRoomNonce = wsMessage.data.roomNonce;
+        const wsMatchUuid = wsMessage.data.matchUuid;
 
         // timeout to cancel the consumer of the room host queue so that the queue can be removed by rabbitmq
         timeout = setTimeout(async () => {
@@ -56,10 +56,10 @@ const initializeSocket = (httpServer) => {
               await channel.cancel(myConsumerTag);
               const qRoomGuestId = qMsgContentJson.data.roomGuest.id;
               const qRoomGuestUsername = qMsgContentJson.data.roomGuest.username;
-              const qRoomNonce = qMsgContentJson.data.roomNonce;
-              if (wsMsgRoomNonce !== qRoomNonce){
-                ws.emit('syncWithRoomGuest', {httpCode: 400, message: "Invalid nonce" });
-                console.log(`syncWithRoomGuest room nonce mismatch: qRoomNonce ${qRoomNonce} and wsMsgRoomNonce ${wsMsgRoomNonce}`)
+              const qMatchUuid = qMsgContentJson.data.qMatchUuid;
+              if (wsMatchUuid !== qMatchUuid){
+                ws.emit('syncWithRoomGuest', {httpCode: 400, message: "Invalid room uuid" });
+                console.log(`syncWithRoomGuest match uuid mismatch: qMatchUuid ${qMatchUuid} and wsMatchUuid ${wsMatchUuid}`)
                 ws.disconnect();
                 return;
               }
@@ -71,7 +71,7 @@ const initializeSocket = (httpServer) => {
               }
              
               // room host sync with room guest by sending room host userid, username, room nonce to the the room guest queue
-              const qSendMsgContentJson = { roomHost: { id: wsId, username: wsUsername }, roomNonce: wsMsgRoomNonce };
+              const qSendMsgContentJson = { roomHost: { id: wsId, username: wsUsername }, matchUuid: wsMatchUuid };
               channel.sendToQueue(qRoomGuestId, Buffer.from(JSON.stringify({data: qSendMsgContentJson})));
               console.log('room host to room guest sync sent');
               ws.emit('syncWithRoomGuest', { httpCode: 200, data: qMsgContentJson });

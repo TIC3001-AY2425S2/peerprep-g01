@@ -114,13 +114,13 @@ const MatchPage = () => {
         console.log("find-match responseJson: ", JSON.stringify(responseJson));
         const roomHostId = responseJson.data.roomHost.id;
         const roomHostUsername = responseJson.data.roomHost.username;
-        const roomNonce = responseJson.data.roomNonce;
+        const matchUuid = responseJson.data.matchUuid;
         setMatchCode(202);
         matchSyncSocket.current = io("http://localhost:3003", {
           auth: {
               token, // Send the token in the handshake
           },
-          // reconnection: true,
+          reconnection: false,
           // reconnectionAttempts: 3,
           timeout: 2000
         });

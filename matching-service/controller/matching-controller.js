@@ -1,10 +1,10 @@
 import amqp from "amqplib";
 import { v4 as uuidv4 } from "uuid";
-import {
-  createMatch as _createMatch,
-  getAllMatches as _getAllMatches,
-  findMatchByQuestionId as _findMatchByQuestionId,
-} from "../model/repository.js";
+// import {
+//   createMatch as _createMatch,
+//   getAllMatches as _getAllMatches,
+//   findMatchByQuestionId as _findMatchByQuestionId,
+// } from "../model/repository.js";
 
 const RABBITMQ_HOST = process.env.RABBITMQ_HOST || 'localhost';
 const RABBITMQ_PORT = process.env.RABBITMQ_PORT || 5672;
@@ -58,9 +58,9 @@ export async function matchByCategoryComplexity(req, res) {
         return res.status(200).json({ message: "Success", data: messageContentJson });
       }
       else{
-        const roomNonce = uuidv4();
-        console.log(`creating match by ${id} with room nonce ${roomNonce}`);
-        const messageContentJson = { roomHost: { id, username }, roomNonce };
+        const matchUuid = uuidv4();
+        console.log(`creating match by ${id} with room nonce ${matchUuid}`);
+        const messageContentJson = { roomHost: { id, username }, matchUuid: matchUuid };
         channel.sendToQueue(commonQueue, Buffer.from(JSON.stringify(messageContentJson)));
         return res.status(200).json( { message: "Success", data: messageContentJson });
       }
@@ -69,10 +69,6 @@ export async function matchByCategoryComplexity(req, res) {
       console.error(err);
       return res.status(500).json({ message: "Error matching. Please try again" });
   }
-}
-
-export async function createMatch(req, res) {
-
 }
 
 export { channel };
