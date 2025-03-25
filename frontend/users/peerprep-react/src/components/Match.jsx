@@ -112,8 +112,8 @@ const MatchPage = () => {
         const response = await fetchPromise;
         const responseJson = await response.json();
         console.log("find-match responseJson: ", JSON.stringify(responseJson));
-        const roomHostId = responseJson.data.roomHost.id;
-        const roomHostUsername = responseJson.data.roomHost.username;
+        const matchHostId = responseJson.data.matchHost.id;
+        const matchHostUsername = responseJson.data.matchHost.username;
         const matchUuid = responseJson.data.matchUuid;
         setMatchCode(202);
         matchSyncSocket.current = io("http://localhost:3003", {
@@ -140,16 +140,16 @@ const MatchPage = () => {
           }
         });
 
-        if (roomHostId === tokenDecoded.id){
-          console.log("i am the room host. Room data is: ", JSON.stringify(responseJson.data));
+        if (matchHostId === tokenDecoded.id){
+          console.log("i am the match host. match data is: ", JSON.stringify(responseJson.data));
           matchSyncSocket.current.on('connect', () => {
-            console.log('room host connected to socket server: ', matchSyncSocket.current.id)
-            matchSyncSocket.current.emit('syncWithRoomGuest', { data: responseJson.data });
-            console.log('syncWithRoomGuest emit: ', JSON.stringify(responseJson.data))
+            console.log('match host connected to socket server: ', matchSyncSocket.current.id)
+            matchSyncSocket.current.emit('syncWithMatchGuest', { data: responseJson.data });
+            console.log('syncWithMatchGuest emit: ', JSON.stringify(responseJson.data))
           })
           
-          matchSyncSocket.current.on('syncWithRoomGuest', (message) => {
-            console.log('syncWithRoomGuest: ', message);
+          matchSyncSocket.current.on('syncWithMatchGuest', (message) => {
+            console.log('syncWithMatchGuest: ', message);
             setMatchCode(message.httpCode);
             matchSyncSocket.current.disconnect();
             if(message.httpCode !== 200){
@@ -161,14 +161,14 @@ const MatchPage = () => {
           });
         }
         else{
-          console.log("i am the room guest. Room data is: ", JSON.stringify(responseJson.data));
+          console.log("i am the match guest. match data is: ", JSON.stringify(responseJson.data));
           matchSyncSocket.current.on('connect', () => {
-            console.log('room guest client connected to server: ', matchSyncSocket.current.id)
-            matchSyncSocket.current.emit('syncWithRoomHost', { data: responseJson.data});
+            console.log('match guest client connected to server: ', matchSyncSocket.current.id)
+            matchSyncSocket.current.emit('syncWithMatchHost', { data: responseJson.data});
           })
 
-          matchSyncSocket.current.on('syncWithRoomHost', (message) => {
-            console.log('syncWithRoomHost message: ', message);
+          matchSyncSocket.current.on('syncWithMatchHost', (message) => {
+            console.log('syncWithMatchHost message: ', message);
             setMatchCode(message.httpCode);
             matchSyncSocket.current.disconnect();
             if(message.httpCode !== 200){
@@ -258,7 +258,7 @@ const MatchPage = () => {
             <>
               <span className="font-semibold">
                 Found Match for <span className="text-blue-600">{selectedQuestion.title}</span> with {" "}
-                <span className="font-bold">{JSON.stringify(matchData)}</span>
+                <span className="font-bold">{JSON.stringify(matchData.current)}</span>
               </span>
             </>
           ) : matchCode === 408 ? (

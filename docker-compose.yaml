@@ -74,7 +74,7 @@ services:
     container_name: matching-service
 
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:4-management
     ports:
       - "5672:5672"    # RabbitMQ default port
       - "15672:15672"  # Management plugin port

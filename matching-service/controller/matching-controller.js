@@ -20,7 +20,7 @@ async function connectToRabbitMQ(retries = 5, interval = 5000) {
   for (let i = 0; i < retries; i++) {
     try {
       console.log(`Attempting to connect to RabbitMQ (attempt ${i + 1}/${retries})...`);
-      connection = await amqp.connect(`amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@${RABBITMQ_HOST}:${RABBITMQ_PORT}`);
+      connection = await amqp.connect(`amqp://localhost`);
       channel = await connection.createChannel();
       console.log('Successfully connected to RabbitMQ');
       return;
@@ -53,14 +53,14 @@ export async function matchByCategoryComplexity(req, res) {
         const messageContent = message.content.toString();
         const messageContentJson = JSON.parse(messageContent);
         console.log('matchByCategoryComplexity getMessage: ', messageContent);
-        console.log(`roomGuest ${username} matched with roomHost ${messageContentJson.roomHost.username}`);
+        console.log(`matchGuest ${username} matched with matchHost ${messageContentJson.matchHost.username}`);
         channel.ack(message);
         return res.status(200).json({ message: "Success", data: messageContentJson });
       }
       else{
         const matchUuid = uuidv4();
         console.log(`creating match by ${id} with room nonce ${matchUuid}`);
-        const messageContentJson = { roomHost: { id, username }, matchUuid: matchUuid };
+        const messageContentJson = { matchHost: { id, username }, matchUuid: matchUuid };
         channel.sendToQueue(commonQueue, Buffer.from(JSON.stringify(messageContentJson)));
         return res.status(200).json( { message: "Success", data: messageContentJson });
       }
