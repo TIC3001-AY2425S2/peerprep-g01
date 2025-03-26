@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   frontend-admin:
     build:
@@ -74,7 +72,7 @@ services:
     container_name: matching-service
 
   rabbitmq:
-    image: rabbitmq:4-management
+    image: rabbitmq:3-management
     ports:
       - "5672:5672"    # RabbitMQ default port
       - "15672:15672"  # Management plugin port

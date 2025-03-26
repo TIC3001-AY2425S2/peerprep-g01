@@ -1,19 +1,17 @@
-import http from "http";
-import index from "./index.js";
+import app from './index.js';
 import "dotenv/config";
 import MatchSyncSocketController from "./controller/match-sync-socket-controller.js"
+import { createServer } from 'http';
 
-const port = process.env.PORT || 3003;
+const PORT = process.env.PORT || 3003;
 
-const server = http.createServer(index);
-
-try{
-  server.listen(port);
-  console.log("Matching service server listening on http://localhost:" + port);
-  MatchSyncSocketController.initializeSocket(server);
-}
-
-catch(err){
+try {
+  const httpServer = createServer(app);
+  httpServer.listen(PORT, () => {
+    console.log(`Matching service is running on port ${PORT}`);
+    MatchSyncSocketController.initializeSocket(httpServer);
+  });
+} catch(err) {
   console.error("Failed to connect to DB");
   console.error(err);
 }
