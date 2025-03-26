@@ -20,7 +20,10 @@ async function connectToRabbitMQ(retries = 5, interval = 5000) {
   for (let i = 0; i < retries; i++) {
     try {
       console.log(`Attempting to connect to RabbitMQ (attempt ${i + 1}/${retries})...`);
-      connection = await amqp.connect(`amqp://localhost`);
+      // Use a properly formatted AMQP URL
+      const amqpUrl = `amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@${RABBITMQ_HOST}`;
+      console.log(`Connecting to RabbitMQ at: ${amqpUrl}`);
+      connection = await amqp.connect(amqpUrl);
       channel = await connection.createChannel();
       console.log('Successfully connected to RabbitMQ');
       return;

@@ -38,7 +38,7 @@ const QuestionModelSchema = new Schema({
 
 QuestionModelSchema.index(
     {
-        name: 'text',
+        title: 'text',
         description: 'text',
         complexity: 'text',
         categories: 'text',

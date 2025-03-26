@@ -5,7 +5,7 @@ FROM node:20 AS builder
 WORKDIR /app
 
 # Install build dependencies
-RUN apt-get update && apt-get install -y python3 make g++
+RUN apt-get update && apt-get install -y python3 make g++ netcat-openbsd
 
 # Copy package files
 COPY package*.json ./
@@ -20,7 +20,7 @@ COPY . .
 FROM node:20-slim
 
 # Install build dependencies
-RUN apt-get update && apt-get install -y python3 make g++
+RUN apt-get update && apt-get install -y python3 make g++ netcat-openbsd
 
 WORKDIR /app
 
@@ -28,11 +28,14 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app .
 
+# Make seed script executable
+RUN chmod +x scripts/wait-and-seed.sh
+
 # Rebuild bcrypt
 RUN npm rebuild bcrypt --build-from-source
 
 # Expose port
 EXPOSE 3002
 
-# Start the application
-CMD ["npm", "start"] 
+# Start the application with seeding
+CMD ["./scripts/wait-and-seed.sh"] 
