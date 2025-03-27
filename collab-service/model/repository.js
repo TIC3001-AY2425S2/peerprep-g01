@@ -11,30 +11,34 @@ export async function connectToDB() {
     await connect(mongoDBUri);
 }
 
-export async function createRoom(matchUuid, questionId, userIds) {
+export async function createCollab(matchUuid, questionId, userIds) {
     return new CollabModel({ matchUuid, questionId, users }).save();
 }
 
-export async function getAllRooms(){
+export async function getAllCollabs(){
     return CollabModel.find()
 }
 
-export async function findRoomsByMatchUuid(matchUuid){
+export async function findCollabsByMatchUuid(matchUuid){
     return CollabModel.find({ matchUuid });
 }
 
-export async function findRoomsByQuestionId(questionId){
+export async function findCollabsByQuestionId(questionId){
     // use text-based compound index search via the $text query
     return CollabModel.find({ questionId });
 }
 
-export async function findRoomsByUserId(userId){
+export async function findCollabsByUserId(userId){
     return CollabModel.find({ 
         userIds: { $in: [ userId ]} 
     });
 }
 
-export async function updateRoomById(id, matchUuid, questionId, userIds) {
+export async function findCollabById(id){
+    return CollabModel.findById(id) 
+}
+
+export async function updateCollabById(id, matchUuid, questionId, userIds) {
     return CollabModel.findByIdAndUpdate(
         id,
         {
@@ -48,6 +52,6 @@ export async function updateRoomById(id, matchUuid, questionId, userIds) {
     );
 }
 
-export async function deleteRoomById(id) {
+export async function deleteCollabById(id) {
     return CollabModel.findByIdAndDelete(id);
 }

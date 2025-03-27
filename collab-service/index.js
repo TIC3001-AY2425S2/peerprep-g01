@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import questionRoutes from "./routes/matching-routes.js";
+import collabRoutes from "./routes/collab-routes.js";
 
 const app = express();
 
@@ -28,12 +28,12 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/match", questionRoutes);
+app.use("/collab", collabRoutes);
 
 app.get("/", (req, res, next) => {
   console.log("Sending Greetings!");
   res.json({
-    message: "Hello World from matching-service",
+    message: "Hello World from collab-service",
   });
 });
 

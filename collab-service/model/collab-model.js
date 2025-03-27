@@ -3,32 +3,17 @@ import mongoose from "mongoose";
 const Schema = mongoose.Schema;
 
 const CollabModelSchema = new Schema({
-    title: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    description: {
+    questionId: {
         type: String,
         required: true,
     },
-    complexity: {
+    matchUuid: {
         type: String,
-        enum : ['Easy','Medium','Hard'],
         required: true,
     },
-    categories: {
+    userIds:{
         type: [String],
-        /*
-        type: [{
-            Schema.Types.ObjectId,
-            ref: "Topic"
-        }],
-        */
-        required: true,
-    },
-    link:{
-        type: String,
+        required: true
     },
     createdAt: {
         type: Date,
@@ -36,21 +21,13 @@ const CollabModelSchema = new Schema({
     },
 });
 
-QuestionModelSchema.index(
+CollabModelSchema.index(
     {
-        name: 'text',
-        description: 'text',
-        complexity: 'text',
-        categories: 'text',
-        link: 'text'
+        questionId: 'text',
+        matchUuid: 'text',
+        userIds: 'text',
+        createdAt: 'text',
     }
 );
 
-QuestionModelSchema.pre('save', function(next) {
-    if (this.complexity && this.complexity.length > 0) {
-    this.complexity = this.complexity.charAt(0).toUpperCase() + this.complexity.slice(1);
-    }
-    next();
-});
-
-export default mongoose.model("QuestionModel", QuestionModelSchema);
+export default mongoose.model("CollabModel", CollabModelSchema);
