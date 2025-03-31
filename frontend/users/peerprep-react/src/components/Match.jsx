@@ -2,86 +2,94 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { io } from 'socket.io-client';
 import { jwtDecode } from "jwt-decode";
+import MatchTimer from "./MatchTimer";
 
 const MatchPage = () => {
-  const [allQuestions, setAllQuestions] = useState([]);
+  const [questionsListOfSelectedCategory, setQuestionsList] = useState([]);
   const [filteredQuestions, setFilteredQuestions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [complexities, setComplexities] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedComplexity, setSelectedComplexity] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
-  // const [isMatching, setIsMatching] = useState(false);
   const [matchCode, setMatchCode] = useState(0);
-
-  //const [matchData, setMatchData] = useState(null);
+  const [matchedQuestion, setMatchedQuestion] = useState(null);
+  const [matchedData, setMatchedData] = useState(null);
+  const intervalRef = useRef(null);
+  
   const matchSyncSocket = useRef(null);
-  const matchData = useRef(null);
+  // const matchedData = useRef(null);
   // const [roomHostAbortController, setRoomHostAbortController] = useState(null); // Store the controller here
   
   const token = localStorage.getItem('token')
   const tokenDecoded = jwtDecode(token);
   // console.log('tokenDecoded: ', tokenDecoded)
-  const headers = {
+  const headerWithAuth = {
     ...(token && { 'Authorization': `Bearer ${token}` }), // If token exists, copy the 'Authorization': `Bearer ${token}` to the header dict
     //...options.headers, // copy other headers to header dict
   };
 
-  useEffect(() => {
-    // Use the helper function to make a fetch request with Authorization header
-    const fetchCategories = async() => {
-      try {
-        const fetchPromise = await fetch('http://localhost:3002/questions/category', { headers });
-        const response = await fetchPromise;
-        const responseJson = await response.json();
-        console.log(responseJson);
-        setCategories(responseJson.data);
-      }
-      catch (err){
-        console.error(err.message);
-      }
+  const fetchCategories = async() => {
+    try {
+      const fetchPromise = await fetch('http://localhost:3002/questions/category', { headers: headerWithAuth });
+      const response = await fetchPromise;
+      const responseJson = await response.json();
+      console.log('fetchCategories: ', responseJson);
+      setCategories(responseJson.data);
     }
+    catch (err){
+      console.error(err.message);
+    }
+  }
+
+  const fetchQuestionsOfSelectedCategory = async() => {
+    try{
+      if (!selectedCategory) return;
+      const fetchPromise = await fetch(`http://localhost:3002/questions/category/${selectedCategory}`, { headers: headerWithAuth });
+      const response = await fetchPromise;
+      const responseJson = await response.json();
+      console.log('fetchQuestionsOfSelectedCategory: ', responseJson);
+      setQuestionsList(responseJson.data);
+    }
+    catch (err){
+      console.error(err.message);
+    } 
+  }
+
+  const getUniqueComplexities = async() => {
+    try{
+      const uniqueComplexities = Array.from(new Set(questionsListOfSelectedCategory.map(q => q.complexity)));
+      setComplexities(uniqueComplexities);
+      setSelectedComplexity("");
+    }
+    catch (err){
+      console.error(err.message);
+    } 
+  }
+
+  // run on load
+  useEffect(() => {
     fetchCategories();
   }, []);
 
+  // run when user selected a category to get all the questions of the selected category
   useEffect(() => {
-    const fetchComplexityOfSelectedCategory = async() => {
-      try{
-        if (!selectedCategory) return;
-        const fetchPromise = await fetch(`http://localhost:3002/questions/category/${selectedCategory}`, { headers });
-        const response = await fetchPromise;
-        const responseJson = await response.json();
-        console.log(responseJson);
-        setAllQuestions(responseJson.data);
-        const uniqueComplexities = Array.from(new Set(responseJson.data.map(q => q.complexity)));
-        setComplexities(uniqueComplexities);
-        setSelectedComplexity("");
-      }
-      catch (err){
-        console.error(err.message);
-      }
-    }
-    fetchComplexityOfSelectedCategory();
-    }, [selectedCategory]);
+    fetchQuestionsOfSelectedCategory();
+  }, [selectedCategory]);
+
+  // runs when the questions list is updated with the questions list changed
+  useEffect(() => {
+    getUniqueComplexities();
+  }, [questionsListOfSelectedCategory]);
 
   useEffect(() => {
-    if (selectedComplexity) {
-      const filtered = allQuestions.filter((q) => q.complexity === selectedComplexity);
-      // setIsMatching(false);
-      setMatchCode(0);
+    const isQuestionsListEmpty = questionsListOfSelectedCategory.length === 0;
+    if (selectedComplexity && !isQuestionsListEmpty) {
+      const filtered = questionsListOfSelectedCategory.filter((q) => q.complexity === selectedComplexity);
       setFilteredQuestions(filtered);
-    }
-  }, [selectedComplexity, allQuestions]);
-
-  useEffect(() => {
-    if (selectedComplexity) {
-      const filtered = allQuestions.filter((q) => q.complexity === selectedComplexity);
-      // setIsMatching(false);
       setMatchCode(0);
-      setFilteredQuestions(filtered);
-      
     }
-  }, [selectedComplexity, allQuestions]);
+  }, [selectedComplexity, questionsListOfSelectedCategory]);
 
   useEffect(() => {
     console.log('matchCode changed:', JSON.stringify(matchCode));
@@ -92,14 +100,21 @@ const MatchPage = () => {
   }, [selectedQuestion]);  // This will run whenever matchCode changes
 
   useEffect(() => {
-    console.log('matchData changed:', JSON.stringify(matchData));
-  }, [matchData]);
+    console.log('matchData changed:', JSON.stringify(matchedData));
+    // console.log('matchData.current:', matchedData.current);
+    if(matchedData){
+      const questionId = matchedData.data.matchQuestionId;
+      console.log('matchData questionId: ', questionId);
+      setMatchedQuestion(questionsListOfSelectedCategory.find((question) => question._id === questionId));
+    }
+  }, [matchedData]);
 
   const handleMatchRandomQuestion = () => {
     // const roomHostAbortController = new AbortController();
     // setRoomHostAbortController(roomHostAbortController); 
+    
     console.log("Matching a random question...");
-    matchData.current = null;
+    // matchedData.current = null;
     const randomQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
     setSelectedQuestion(randomQuestion);  // Match a random question
     const categorySubmit = selectedCategory.toLocaleLowerCase();
@@ -108,13 +123,19 @@ const MatchPage = () => {
     const fetchMatch = async() => {
       try{
         // const signal = roomHostAbortController.signal;
-        const fetchPromise = await fetch(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`, { headers });
+        const headerWithPost = {
+          ...({ ...headerWithAuth, 'Content-Type': 'application/json' })
+        };
+        const fetchPromise = await fetch(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`, { 
+          headers: headerWithPost,
+          method: 'POST',
+          body: JSON.stringify({'_id': randomQuestion._id}),
+        });
         const response = await fetchPromise;
         const responseJson = await response.json();
         console.log("find-match responseJson: ", JSON.stringify(responseJson));
         const matchHostId = responseJson.data.matchHost.id;
-        const matchHostUsername = responseJson.data.matchHost.username;
-        const matchUuid = responseJson.data.matchUuid;
+
         setMatchCode(202);
         matchSyncSocket.current = io("http://localhost:3003", {
           auth: {
@@ -150,13 +171,15 @@ const MatchPage = () => {
           
           matchSyncSocket.current.on('syncWithMatchGuest', (message) => {
             console.log('syncWithMatchGuest: ', message);
-            setMatchCode(message.httpCode);
             matchSyncSocket.current.disconnect();
             if(message.httpCode !== 200){
               setSelectedQuestion(null);
+              setMatchCode(message.httpCode);
             }
             else{
-              matchData.current = message.data;
+              // matchedData.current = message.data;
+              setMatchedData(message.data);
+              setMatchCode(message.httpCode);
             }
           });
         }
@@ -169,13 +192,14 @@ const MatchPage = () => {
 
           matchSyncSocket.current.on('syncWithMatchHost', (message) => {
             console.log('syncWithMatchHost message: ', message);
-            setMatchCode(message.httpCode);
             matchSyncSocket.current.disconnect();
             if(message.httpCode !== 200){
               setSelectedQuestion(null);
             }
             else{
-              matchData.current = message.data;
+              // matchedData.current = message.data;
+              setMatchedData(message.data);
+              setMatchCode(message.httpCode);
             }
           });
           
@@ -254,11 +278,39 @@ const MatchPage = () => {
 
       {(matchCode !== 0) && (
         <div className="mt-4 flex items-center space-x-2">
-          {matchCode === 200 ? (
+          {(matchCode === 200 && matchedData && matchedQuestion) ? (
             <>
               <span className="font-semibold">
-                Found Match for <span className="text-blue-600">{selectedQuestion.title}</span> with {" "}
-                <span className="font-bold">{JSON.stringify(matchData.current)}</span>
+                <div>Found Match for: <span className="font-bold"><b>{matchedQuestion.title}</b></span></div>
+                {/* <div>Match Info: <span className="font-bold"><b>{JSON.stringify(matchedQuestion)}</b></span></div> */}
+                {/* <div>Match Data: <span className="font-bold"><b>{JSON.stringify(matchedData)}</b></span></div> */}
+                
+                <table className="w-full border-collapse border border-gray-300" style={{ border: '1px solid black', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border p-2">Field</th>
+                      <th className="border p-2">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border p-2">Question ID</td>
+                      <td className="border p-2">{matchedQuestion._id}</td>
+                    </tr>
+                    <tr>
+                      <td className="border p-2">Question Title</td>
+                      <td className="border p-2">{matchedQuestion.title}</td>
+                    </tr>
+                    <tr>
+                      <td className="border p-2">Matched User</td>
+                      <td className="border p-2">{matchedData.data.matchHost ? matchedData.data.matchHost.username : matchedData.data.matchGuest.username}</td>
+                    </tr>
+                    <tr>
+                      <td className="border p-2">Match UUID</td>
+                      <td className="border p-2">{matchedData.data.matchUuid}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </span>
             </>
           ) : matchCode === 408 ? (
@@ -282,7 +334,8 @@ const MatchPage = () => {
           ) : matchCode === 202 ? (
             <>
               <span className="animate-pulse text-yellow-500">⏳</span>
-              <span>Finding Match for <span className="font-semibold">{selectedQuestion.title}</span></span>
+              <span>Finding Match for: <span className="font-semibold">{selectedQuestion.title}</span></span>
+              <MatchTimer initialSeconds={30}/>
             </>
           ) : matchCode === 500 ? (
             <>

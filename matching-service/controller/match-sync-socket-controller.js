@@ -30,6 +30,7 @@ const initializeSocket = (httpServer) => {
       try{
         console.log('syncWithMatchGuest message: ', JSON.stringify(wsMessage));
         const wsMatchUuid = wsMessage.data.matchUuid;
+        const wsMatchQuestionId = wsMessage.data.matchQuestionId
 
         // timeout to cancel the consumer of the room host queue so that the queue can be removed by rabbitmq
         timeout = setTimeout(async () => {
@@ -68,7 +69,7 @@ const initializeSocket = (httpServer) => {
               }
              
               // room host sync with room guest by sending room host userid, username, room nonce to the the room guest queue
-              const qSendMsgContentJson = { matchHost: { id: wsId, username: wsUsername }, matchUuid: wsMatchUuid };
+              const qSendMsgContentJson = { matchHost: { id: wsId, username: wsUsername }, matchUuid: wsMatchUuid, matchQuestionId:  wsMatchQuestionId};
               channel.sendToQueue(qMatchGuestId, Buffer.from(JSON.stringify({data: qSendMsgContentJson})));
               console.log('match host to match guest sync sent');
               ws.emit('syncWithMatchGuest', { httpCode: 200, data: qMsgContentJson });
@@ -83,76 +84,92 @@ const initializeSocket = (httpServer) => {
         }, { consumerTag: myConsumerTag });
       }
       catch (err){
-        console.error('syncWithMatchGuesterr socket error: ', err.message);
-        channel.cancel(myConsumerTag);
+        console.error('syncWithMatchGuest socket error: ', err.message);
+        await channel.cancel(myConsumerTag);
+        ws.disconnect();
       }
     })
 
     // for room partner to sync with room host
     ws.on('syncWithMatchHost', async (wsMessage) => {
-      console.log('syncWithMatchHost message: ', JSON.stringify(wsMessage));
-      const wsMatchHostId = wsMessage.data.matchHost.id;
-      const wsMatchHostUsername = wsMessage.data.matchHost.username;
-      const wsMatchUuid = wsMessage.data.matchUuid;
+      try{
+        console.log('syncWithMatchHost message: ', JSON.stringify(wsMessage));
+        const wsMatchHostId = wsMessage.data.matchHost.id;
+        const wsMatchHostUsername = wsMessage.data.matchHost.username;
+        const wsMatchUuid = wsMessage.data.matchUuid;
+        const wsMatchQuestionId = wsMessage.data.matchQuestionId;
 
-      if(wsId === wsMatchHostId){
-        console.log('matched with self in wsMessage');
-        ws.emit('syncWithMatchHost', {httpCode: 400, message: "Match conflict"});
-        ws.disconnect();
-        return;
-      }
-
-      // create the matchHost queue in case the room host have not created it
-      await createMatchHostQueue(wsMatchHostId);
-      await createMatchGuestQueue(wsId);
-      const qSendMsgContentJson = {matchGuest: { id: wsId, username: wsUsername }, matchUuid: wsMatchUuid };
-      channel.sendToQueue(wsMatchHostId, Buffer.from(JSON.stringify({data: qSendMsgContentJson})));
-      console.log("room guest to room host sync sent")
-      
-      const timeout = setTimeout(() => {
-        console.log(`syncWithMatchHost timed out for ${wsUsername}`);
-        channel.cancel(myConsumerTag);
-        ws.emit('syncWithMatchHost', {httpCode: 408, message: 'Timeout'});
-        ws.disconnect();
-      }, matchPartnerExpiry)
-  
-      await channel.cancel(myConsumerTag);
-
-      // wait for room host to send a sync to room guest
-      await channel.consume(wsId, (qMessage) => {
-        const myConsume = async() => {
-          clearTimeout(timeout);
-          const qMsgContent = qMessage.content.toString();
-          const qMsgContentJson = JSON.parse(qMsgContent);
-          console.log("syncWithMatchHost channel.consume message: ", qMsgContent);
-          channel.ack(qMessage);
-          await channel.cancel(myConsumerTag);
-          const qMatchHostId = qMsgContentJson.data.matchHost.id;
-          const qMatchUuid = qMsgContentJson.data.matchUuid
-          if (wsMatchUuid !== qMatchUuid){
-            ws.emit('syncWithMatchHost', {httpCode: 400, message: "Invalid nonce" });
-            console.log(`syncWithMatchHost match nonce mismatch: qMatchNonce ${qMatchUuid} and wsMatchNonce ${wsMatchUuid}`)
-            ws.disconnect();
-            return;
-          }
-          if (wsMatchHostId !== qMatchHostId){
-            ws.emit('syncWithMatchHost', {httpCode: 400, message: 'Match conflict'})
-            console.log(`syncWithMatchHost match host id mismatch: qMsg ${qMatchHostId} and wsMsg ${wsMatchHostId}`)
-            ws.disconnect();
-            return;
-          }
-          if (wsId === qMatchHostId){
-            console.log('syncWithMatchHost matched with self in qMsg');
-            ws.emit('syncWithMatchHost', {httpCode: 400, message: "Match conflict"});
-            ws.disconnect();
-            return;
-          }
-          ws.emit('syncWithMatchHost', { httpCode: 200, data: qMsgContentJson });
+        if(wsId === wsMatchHostId){
+          console.log('matched with self in wsMessage');
+          ws.emit('syncWithMatchHost', {httpCode: 400, message: "Match conflict"});
           ws.disconnect();
-
+          return;
         }
-        myConsume();
-      }, { consumerTag: myConsumerTag });
+
+        // create the matchHost queue in case the room host have not created it
+        await createMatchHostQueue(wsMatchHostId);
+        await createMatchGuestQueue(wsId);
+        const qSendMsgContentJson = {matchGuest: { id: wsId, username: wsUsername }, matchUuid: wsMatchUuid, matchQuestionId:  wsMatchQuestionId};
+        channel.sendToQueue(wsMatchHostId, Buffer.from(JSON.stringify({data: qSendMsgContentJson})));
+        console.log("match guest to match host sync sent")
+        
+        const timeout = setTimeout(() => {
+          console.log(`syncWithMatchHost timed out for ${wsUsername}`);
+          channel.cancel(myConsumerTag);
+          ws.emit('syncWithMatchHost', {httpCode: 408, message: 'Timeout'});
+          ws.disconnect();
+        }, matchPartnerExpiry)
+    
+        await channel.cancel(myConsumerTag);
+        
+
+        // wait for room host to send a sync to room guest
+        await channel.consume(wsId, (qMessage) => {
+          const myConsume = async() => {
+            try{
+              clearTimeout(timeout);
+              const qMsgContent = qMessage.content.toString();
+              const qMsgContentJson = JSON.parse(qMsgContent);
+              console.log("syncWithMatchHost channel.consume message: ", qMsgContent);
+              channel.ack(qMessage);
+              await channel.cancel(myConsumerTag);
+              const qMatchHostId = qMsgContentJson.data.matchHost.id;
+              const qMatchUuid = qMsgContentJson.data.matchUuid
+              if (wsMatchUuid !== qMatchUuid){
+                ws.emit('syncWithMatchHost', {httpCode: 400, message: "Invalid nonce" });
+                console.log(`syncWithMatchHost match nonce mismatch: qMatchNonce ${qMatchUuid} and wsMatchNonce ${wsMatchUuid}`)
+                ws.disconnect();
+                return;
+              }
+              if (wsMatchHostId !== qMatchHostId){
+                ws.emit('syncWithMatchHost', {httpCode: 400, message: 'Match conflict'})
+                console.log(`syncWithMatchHost match host id mismatch: qMsg ${qMatchHostId} and wsMsg ${wsMatchHostId}`)
+                ws.disconnect();
+                return;
+              }
+              if (wsId === qMatchHostId){
+                console.log('syncWithMatchHost matched with self in qMsg');
+                ws.emit('syncWithMatchHost', {httpCode: 400, message: "Match conflict"});
+                ws.disconnect();
+                return;
+              }
+              ws.emit('syncWithMatchHost', { httpCode: 200, data: qMsgContentJson });
+              ws.disconnect();
+            }
+            catch(err){
+              console.error('syncWithMatchHost channel.consume error: ', err.message);
+              await channel.cancel(myConsumerTag);
+            }
+
+          }
+          myConsume();
+        }, { consumerTag: myConsumerTag });
+      }
+      catch(err){
+        console.error(err.message);
+        await channel.cancel(myConsumerTag);
+        ws.disconnect();
+      }
     });
 
     // Handle connection close

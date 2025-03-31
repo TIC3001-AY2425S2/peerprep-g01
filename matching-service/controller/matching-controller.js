@@ -47,8 +47,10 @@ const matchExpire = 1000 * 30; // 30 seconds
 export async function matchByCategoryComplexity(req, res) {
   try {
       const {id, username, email} = req.user;
-      const attribute = [ req.params.category, req.params.complexity ]; 
-      const commonQueue = attribute.join(".");
+      const questionAttributes = [ req.params.category, req.params.complexity ]; 
+      const questionId = req.body._id;
+      console.log("matchByCategoryComplexity questionId: ", questionId);
+      const commonQueue = questionAttributes.join(".");
       const queue = await channel.assertQueue(commonQueue, { durable: false, arguments: { "x-message-ttl": matchExpire }});
       queues[commonQueue] = queue;
       const message = await channel.get(commonQueue);
@@ -62,8 +64,8 @@ export async function matchByCategoryComplexity(req, res) {
       }
       else{
         const matchUuid = uuidv4();
-        console.log(`creating match by ${id} with room nonce ${matchUuid}`);
-        const messageContentJson = { matchHost: { id, username }, matchUuid: matchUuid };
+        console.log(`creating match for questionId ${questionId} by userId ${id} with matchUuid ${matchUuid}`);
+        const messageContentJson = { matchHost: { id, username }, matchUuid: matchUuid, matchQuestionId: questionId };
         channel.sendToQueue(commonQueue, Buffer.from(JSON.stringify(messageContentJson)));
         return res.status(200).json( { message: "Success", data: messageContentJson });
       }
