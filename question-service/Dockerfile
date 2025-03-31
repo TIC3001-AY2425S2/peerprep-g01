@@ -28,9 +28,6 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app .
 
-# Make seed script executable
-RUN chmod +x scripts/wait-and-seed.sh
-
 # Rebuild bcrypt
 RUN npm rebuild bcrypt --build-from-source
 
@@ -38,4 +35,4 @@ RUN npm rebuild bcrypt --build-from-source
 EXPOSE 3002
 
 # Start the application with seeding
-CMD ["./scripts/wait-and-seed.sh"] 
+ENTRYPOINT ["/bin/sh", "-c", "node scripts/seed.js && npm start"] 
