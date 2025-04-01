@@ -13,7 +13,34 @@ const RABBITMQ_PASS = process.env.RABBITMQ_DEFAULT_PASS || 'guest';
 
 let connection;
 let channel;
-const queues = new Map();
+
+async function getRabbitMQQueueStatus(queueName, rabbitmqUrl, rabbitmqUser, rabbitmqPassword) {
+  try {
+    // const apiUrl = `${rabbitmqUrl}/api/queues/%2f/${queueName}`;
+    const apiUrl = `${rabbitmqUrl}/api/queues/%2f/${queueName}/get`;
+    const auth = Buffer.from(`${rabbitmqUser}:${rabbitmqPassword}`).toString('base64');
+    const count = 1;
+    const ackmode = 'ack_requeue_true';
+    const encoding = 'auto';
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Basic ${auth}`,
+      },
+      body: JSON.stringify({ count, ackmode, encoding }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const queueInfo = await response.json();
+    return queueInfo;
+  } catch (error) {
+    console.error('Error fetching RabbitMQ queue status:', error);
+    return null;
+  }
+}
 
 // Function to connect to RabbitMQ with retries
 async function connectToRabbitMQ(retries = 5, interval = 5000) {
@@ -52,13 +79,14 @@ export async function matchByCategoryComplexity(req, res) {
       console.log("matchByCategoryComplexity questionId: ", questionId);
       const commonQueue = questionAttributes.join(".");
       const queue = await channel.assertQueue(commonQueue, { durable: false, arguments: { "x-message-ttl": matchExpire }});
-      queues[commonQueue] = queue;
       const message = await channel.get(commonQueue);
       if (message){
         const messageContent = message.content.toString();
         const messageContentJson = JSON.parse(messageContent);
         console.log('matchByCategoryComplexity getMessage: ', messageContent);
         console.log(`matchGuest ${username} matched with matchHost ${messageContentJson.matchHost.username}`);
+        const status = await getRabbitMQQueueStatus(commonQueue, "http://localhost:15672", "guest", "guest");
+        console.log('matchByCategoryComplexity getRabbitMQQueueStatus: ', status)
         channel.ack(message);
         return res.status(200).json({ message: "Success", data: messageContentJson });
       }
@@ -66,7 +94,9 @@ export async function matchByCategoryComplexity(req, res) {
         const matchUuid = uuidv4();
         console.log(`creating match for questionId ${questionId} by userId ${id} with matchUuid ${matchUuid}`);
         const messageContentJson = { matchHost: { id, username }, matchUuid: matchUuid, matchQuestionId: questionId };
-        channel.sendToQueue(commonQueue, Buffer.from(JSON.stringify(messageContentJson)));
+        await channel.sendToQueue(commonQueue, Buffer.from(JSON.stringify(messageContentJson)));
+        const status = await getRabbitMQQueueStatus(commonQueue, "http://localhost:15672", "guest", "guest");
+        console.log('matchByCategoryComplexity getRabbitMQQueueStatus: ', status)
         return res.status(200).json( { message: "Success", data: messageContentJson });
       }
   }
@@ -76,4 +106,4 @@ export async function matchByCategoryComplexity(req, res) {
   }
 }
 
-export { channel };
+export { channel, getRabbitMQQueueStatus };

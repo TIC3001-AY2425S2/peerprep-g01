@@ -1,7 +1,6 @@
 import { Server } from 'socket.io';
-import { channel  } from "./matching-controller.js";
+import { channel } from "./matching-controller.js";
 import { verifySocketAccessToken } from '../middleware/basic-access-control.js';
-
 const matchHostExpiry =  1000 * 30; // 30 seconds
 const matchPartnerExpiry = 1000 * 10; // 10 seconds
 
@@ -23,7 +22,7 @@ const initializeSocket = (httpServer) => {
     const wsId = ws.user.id;
     const myConsumerTag = `consumer-${wsId}`
     // clients.set(ws.id, wsId);
-    console.log('ws.user.username: ', ws.user.username);
+    console.log('ws.user: ', JSON.stringify(ws.user));
     
     // for room host to sync with room partner
     ws.on('syncWithMatchGuest', async (wsMessage) => {
@@ -50,6 +49,10 @@ const initializeSocket = (httpServer) => {
               const qMsgContent = qMessage.content.toString();
               const qMsgContentJson = JSON.parse(qMsgContent);
               console.log("syncWithMatchGuest channel.consume message: ", qMsgContent);
+
+              // const status = await getRabbitMQQueueStatus(wsId, "http://localhost:15672", "guest", "guest");
+              // console.log('syncWithMatchGuest getRabbitMQQueueStatus: ', status)
+
               channel.ack(qMessage);
               await channel.cancel(myConsumerTag);
               const qMatchGuestId = qMsgContentJson.data.matchGuest.id;
@@ -70,7 +73,7 @@ const initializeSocket = (httpServer) => {
              
               // room host sync with room guest by sending room host userid, username, room nonce to the the room guest queue
               const qSendMsgContentJson = { matchHost: { id: wsId, username: wsUsername }, matchUuid: wsMatchUuid, matchQuestionId:  wsMatchQuestionId};
-              channel.sendToQueue(qMatchGuestId, Buffer.from(JSON.stringify({data: qSendMsgContentJson})));
+              await channel.sendToQueue(qMatchGuestId, Buffer.from(JSON.stringify({data: qSendMsgContentJson})));
               console.log('match host to match guest sync sent');
               ws.emit('syncWithMatchGuest', { httpCode: 200, data: qMsgContentJson });
               ws.disconnect();
@@ -110,9 +113,9 @@ const initializeSocket = (httpServer) => {
         await createMatchHostQueue(wsMatchHostId);
         await createMatchGuestQueue(wsId);
         const qSendMsgContentJson = {matchGuest: { id: wsId, username: wsUsername }, matchUuid: wsMatchUuid, matchQuestionId:  wsMatchQuestionId};
-        channel.sendToQueue(wsMatchHostId, Buffer.from(JSON.stringify({data: qSendMsgContentJson})));
+        await channel.sendToQueue(wsMatchHostId, Buffer.from(JSON.stringify({data: qSendMsgContentJson})));
         console.log("match guest to match host sync sent")
-        
+
         const timeout = setTimeout(() => {
           console.log(`syncWithMatchHost timed out for ${wsUsername}`);
           channel.cancel(myConsumerTag);
@@ -121,7 +124,6 @@ const initializeSocket = (httpServer) => {
         }, matchPartnerExpiry)
     
         await channel.cancel(myConsumerTag);
-        
 
         // wait for room host to send a sync to room guest
         await channel.consume(wsId, (qMessage) => {
@@ -131,6 +133,10 @@ const initializeSocket = (httpServer) => {
               const qMsgContent = qMessage.content.toString();
               const qMsgContentJson = JSON.parse(qMsgContent);
               console.log("syncWithMatchHost channel.consume message: ", qMsgContent);
+
+              // const status = await getRabbitMQQueueStatus(wsId, "http://localhost:15672", "guest", "guest");
+              // console.log('syncWithMatchHost getRabbitMQQueueStatus: ', status)
+
               channel.ack(qMessage);
               await channel.cancel(myConsumerTag);
               const qMatchHostId = qMsgContentJson.data.matchHost.id;
