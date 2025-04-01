@@ -11,8 +11,6 @@ import {
   deleteCollabById as _deleteCollabById,
   getAllCollabs, 
 } from "../model/repository.js";
-import { match } from "assert";
-import { create } from "domain";
 
 const connection = await amqp.connect("amqp://localhost");
 const channel = await connection.createChannel();
@@ -23,6 +21,14 @@ export async function createCollab(req, res) {
       if (!(matchUuid, userIds, questionId)){
         return res.status(400).json({ message: "missing parameter" }); 
       }
+      const existingCollab = await _findCollabsByMatchUuid(matchUuid);
+      if(existingCollab){
+        return res.status(201).json({
+          message: 'Success',
+          data: formatCollabResponse(existingCollab)
+        })    
+      }
+
       const createdCollab = await _createCollab(matchUuid, questionId, userIds);
       return res.status(201).json({
         message: 'Success',

@@ -1,3 +1,4 @@
+import { match } from "assert";
 import CollabModel from "./collab-model.js";
 import "dotenv/config";
 import { connect } from "mongoose";
@@ -12,7 +13,7 @@ export async function connectToDB() {
 }
 
 export async function createCollab(matchUuid, questionId, userIds) {
-    return new CollabModel({ matchUuid, questionId, users }).save();
+    return new CollabModel({ matchUuid, questionId, userIds }).save();
 }
 
 export async function getAllCollabs(){
