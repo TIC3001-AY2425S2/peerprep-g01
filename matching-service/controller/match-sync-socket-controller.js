@@ -66,7 +66,7 @@ const initializeSocket = (httpServer) => {
               }
               if (wsId === qMatchGuestId){
                 console.log('syncWithMatchGuest matched with self');
-                ws.emit('syncWithMatchGuest', {httpCode: 400, message: "Match conflict" });
+                ws.emit('syncWithMatchGuest', {httpCode: 409, message: "Match conflict" });
                 ws.disconnect();
                 return;
               }
@@ -104,7 +104,7 @@ const initializeSocket = (httpServer) => {
 
         if(wsId === wsMatchHostId){
           console.log('matched with self in wsMessage');
-          ws.emit('syncWithMatchHost', {httpCode: 400, message: "Match conflict"});
+          ws.emit('syncWithMatchHost', {httpCode: 409, message: "Match conflict"});
           ws.disconnect();
           return;
         }
@@ -142,20 +142,20 @@ const initializeSocket = (httpServer) => {
               const qMatchHostId = qMsgContentJson.data.matchHost.id;
               const qMatchUuid = qMsgContentJson.data.matchUuid
               if (wsMatchUuid !== qMatchUuid){
-                ws.emit('syncWithMatchHost', {httpCode: 400, message: "Invalid nonce" });
                 console.log(`syncWithMatchHost match nonce mismatch: qMatchNonce ${qMatchUuid} and wsMatchNonce ${wsMatchUuid}`)
+                ws.emit('syncWithMatchHost', {httpCode: 400, message: "Invalid nonce" });
                 ws.disconnect();
                 return;
               }
               if (wsMatchHostId !== qMatchHostId){
-                ws.emit('syncWithMatchHost', {httpCode: 400, message: 'Match conflict'})
                 console.log(`syncWithMatchHost match host id mismatch: qMsg ${qMatchHostId} and wsMsg ${wsMatchHostId}`)
+                ws.emit('syncWithMatchHost', {httpCode: 400, message: 'Match host id mismatch'})
                 ws.disconnect();
                 return;
               }
               if (wsId === qMatchHostId){
                 console.log('syncWithMatchHost matched with self in qMsg');
-                ws.emit('syncWithMatchHost', {httpCode: 400, message: "Match conflict"});
+                ws.emit('syncWithMatchHost', {httpCode: 409, message: "Match conflict"});
                 ws.disconnect();
                 return;
               }

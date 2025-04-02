@@ -15,6 +15,8 @@ function getRandomColor() {
   return `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0")}`;
 };
 
+
+// used by Providers.tsx
 export async function POST(request: NextRequest) {
   // // Get the current user's unique id from your database
   // const userId = Math.floor(Math.random() * 10) % USER_INFO.length;

@@ -15,8 +15,10 @@ const MatchPage = () => {
   const [matchCode, setMatchCode] = useState(0);
   const [matchedQuestion, setMatchedQuestion] = useState(null);
   const [matchedData, setMatchedData] = useState(null);
-  const intervalRef = useRef(null);
+  const [collabRoomMessage, setCollabRoomMessage] = useState("");
+  const [collabRoomData, setCollabRoomData] = useState(null);
   
+  const collabRoomDataRetry = useRef(0);
   const matchSyncSocket = useRef(null);
   // const matchedData = useRef(null);
   // const [roomHostAbortController, setRoomHostAbortController] = useState(null); // Store the controller here
@@ -29,7 +31,7 @@ const MatchPage = () => {
     //...options.headers, // copy other headers to header dict
   };
 
-  const fetchCategories = async() => {
+  async function fetchCategories() {
     try {
       const fetchPromise = await fetch('http://localhost:3002/questions/category', { headers: headerWithAuth });
       const response = await fetchPromise;
@@ -42,7 +44,7 @@ const MatchPage = () => {
     }
   }
 
-  const fetchQuestionsOfSelectedCategory = async() => {
+  async function fetchQuestionsOfSelectedCategory() {
     try{
       if (!selectedCategory) return;
       const fetchPromise = await fetch(`http://localhost:3002/questions/category/${selectedCategory}`, { headers: headerWithAuth });
@@ -56,7 +58,7 @@ const MatchPage = () => {
     } 
   }
 
-  const getUniqueComplexities = async() => {
+  async function getUniqueComplexities() {
     try{
       const uniqueComplexities = Array.from(new Set(questionsListOfSelectedCategory.map(q => q.complexity)));
       setComplexities(uniqueComplexities);
@@ -65,6 +67,39 @@ const MatchPage = () => {
     catch (err){
       console.error(err.message);
     } 
+  }
+
+  async function setupCollabRoom(matchUuid, questionId, userId){
+    try{
+      const postData = {matchUuid, questionId, userId};
+      const fetchPromise = await fetch(`http://localhost:3004/collab/create-collab`, { 
+        headers: { ...headerWithAuth, 'Content-Type': 'application/json' },
+          method: 'POST',
+          body: JSON.stringify(postData),
+      });
+      const response = await fetchPromise;
+      const responseJson = await response.json();
+      console.log('setupCollabRoom: ', responseJson);
+      return responseJson;
+    }
+    catch(err){
+      console.error(err.message);
+    }
+  }
+
+  async function getCollabRoomData(matchUuid){
+    try{
+      const fetchPromise = await fetch(`http://localhost:3004/collab/matchUuid/${matchUuid}`, { 
+        headers: { ...headerWithAuth }
+      });
+      const response = await fetchPromise;
+      const responseJson = await response.json();
+      console.log('getCollabRoomData: ', responseJson);
+      return responseJson;
+    }
+    catch(err){
+      console.error(err.message);
+    }
   }
 
   // run on load
@@ -100,21 +135,52 @@ const MatchPage = () => {
   }, [selectedQuestion]);  // This will run whenever matchCode changes
 
   useEffect(() => {
-    console.log('matchData changed:', JSON.stringify(matchedData));
-    // console.log('matchData.current:', matchedData.current);
-    if(matchedData){
-      const questionId = matchedData.data.matchQuestionId;
-      console.log('matchData questionId: ', questionId);
-      setMatchedQuestion(questionsListOfSelectedCategory.find((question) => question._id === questionId));
+    console.log('matchedData changed:', JSON.stringify(matchedData));
+    const myFunc = async() => {
+      if(matchedData){
+        const questionId = matchedData.data.matchQuestionId;
+        setMatchedQuestion(questionsListOfSelectedCategory.find((question) => question._id === questionId));
+        const responseJson = await setupCollabRoom(matchedData.data.matchUuid, matchedData.data.matchQuestionId, tokenDecoded.id);
+        console.log('matchedData responseJson.message: ', responseJson.message);
+        setCollabRoomMessage(responseJson.message);
+      }
     }
+    myFunc();
   }, [matchedData]);
 
+  useEffect(() => {
+    console.log('collabRoomMessage changed:', collabRoomMessage);
+    const myFunc = async() => {
+      if(collabRoomDataRetry.current > 3){
+        console.log('collabRoomDataRetry exceed');
+        return;
+      }
+      if(collabRoomMessage.toLowerCase() === "success"){
+        let responseJson = await getCollabRoomData(matchedData.data.matchUuid);
+        setCollabRoomData(responseJson);
+        setCollabRoomMessage("");
+        collabRoomDataRetry.current = 0;
+      }
+    }
+    myFunc();
+  }, [collabRoomMessage]);
+
+  useEffect(() => {
+    console.log('collabRoomData changed:', collabRoomData);
+    if (!collabRoomData){
+      return;
+    }
+    else if (collabRoomData.data === null){
+      setCollabRoomMessage("success");
+      collabRoomDataRetry.current++;
+    }
+    else {
+      console.log('to implement redirect to liveblocks');
+    }
+  }, [collabRoomData]);
+
   const handleMatchRandomQuestion = () => {
-    // const roomHostAbortController = new AbortController();
-    // setRoomHostAbortController(roomHostAbortController); 
-    
     console.log("Matching a random question...");
-    // matchedData.current = null;
     const randomQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
     setSelectedQuestion(randomQuestion);  // Match a random question
     const categorySubmit = selectedCategory.toLocaleLowerCase();
@@ -122,21 +188,20 @@ const MatchPage = () => {
     console.log('randomQuestion: ', randomQuestion);
     const fetchMatch = async() => {
       try{
-        // const signal = roomHostAbortController.signal;
-        const headerWithPost = {
-          ...({ ...headerWithAuth, 'Content-Type': 'application/json' })
-        };
         const fetchPromise = await fetch(`http://localhost:3003/match/find-match/${categorySubmit}/${complexitySubmit}`, { 
-          headers: headerWithPost,
+          headers: { ...headerWithAuth, 'Content-Type': 'application/json' },
           method: 'POST',
           body: JSON.stringify({'_id': randomQuestion._id}),
         });
         const response = await fetchPromise;
         const responseJson = await response.json();
         console.log("find-match responseJson: ", JSON.stringify(responseJson));
+        console.log("response: ", response);
+        setMatchCode(response.status);
+        if (response.status !== 202){
+          return;
+        }
         const matchHostId = responseJson.data.matchHost.id;
-
-        setMatchCode(202);
         matchSyncSocket.current = io("http://localhost:3003", {
           auth: {
               token, // Send the token in the handshake
@@ -177,7 +242,6 @@ const MatchPage = () => {
               setMatchCode(message.httpCode);
             }
             else{
-              // matchedData.current = message.data;
               setMatchedData(message.data);
               setMatchCode(message.httpCode);
             }
@@ -197,7 +261,6 @@ const MatchPage = () => {
               setSelectedQuestion(null);
             }
             else{
-              // matchedData.current = message.data;
               setMatchedData(message.data);
               setMatchCode(message.httpCode);
             }
@@ -218,7 +281,6 @@ const MatchPage = () => {
     if (matchSyncSocket){
       matchSyncSocket.current.disconnect();
     }
-    // setIsMatching(false);
     setSelectedQuestion(null);
     setMatchCode(499);
   };

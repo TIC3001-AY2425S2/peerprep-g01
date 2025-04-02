@@ -10,6 +10,7 @@ const CollabModelSchema = new Schema({
     matchUuid: {
         type: String,
         required: true,
+        unique: true,
     },
     userIds:{
         type: [String],

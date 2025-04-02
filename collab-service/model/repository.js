@@ -1,4 +1,3 @@
-import { match } from "assert";
 import CollabModel from "./collab-model.js";
 import "dotenv/config";
 import { connect } from "mongoose";
@@ -13,15 +12,15 @@ export async function connectToDB() {
 }
 
 export async function createCollab(matchUuid, questionId, userIds) {
-    return new CollabModel({ matchUuid, questionId, userIds }).save();
+    return new CollabModel({ questionId, matchUuid, userIds }).save();
 }
 
 export async function getAllCollabs(){
     return CollabModel.find()
 }
 
-export async function findCollabsByMatchUuid(matchUuid){
-    return CollabModel.find({ matchUuid });
+export async function findCollabByMatchUuid(matchUuid){
+    return CollabModel.findOne({ matchUuid });
 }
 
 export async function findCollabsByQuestionId(questionId){
@@ -49,8 +48,21 @@ export async function updateCollabById(id, matchUuid, questionId, userIds) {
                 userIds,
             },
         },
-        { new: true },  // return the updated question
+        // { upsert: true, new: true },  // return the updated question
+        { new: true},
     );
+}
+
+export async function updateCollabByMatchUuid(matchUuid, questionId, userId){
+  return CollabModel.findOneAndUpdate(
+    { matchUuid },
+    {
+        $set: { questionId, },
+        $push: { userIds: userId },
+    },
+    { upsert: true, new: true },  // return the updated question
+    // { new: true},
+  );
 }
 
 export async function deleteCollabById(id) {
