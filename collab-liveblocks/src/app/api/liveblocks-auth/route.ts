@@ -10,28 +10,14 @@ const liveblocks = new Liveblocks({
   secret: process.env.LIVEBLOCKS_SECRET_KEY!,
 });
 
-
-function getRandomColor() {
-  return `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0")}`;
-};
-
-
-// used by Providers.tsx
 export async function POST(request: NextRequest) {
-  // // Get the current user's unique id from your database
-  // const userId = Math.floor(Math.random() * 10) % USER_INFO.length;
+  // Get the current user's unique id from your database
+  const userId = Math.floor(Math.random() * 10) % USER_INFO.length;
 
-  // // Create a session for the current user
-  // // userInfo is made available in Liveblocks presence hooks, e.g. useOthers
-  // const session = liveblocks.prepareSession(`user-${userId}`, {
-  //   userInfo: USER_INFO[userId],
-  // });
-  const body = await request.json();
-  const userId = body.userId; // Expecting an array of user IDs
-  const username = body.username;
-  const userInfo = {userId, username, color: getRandomColor() }
+  // Create a session for the current user
+  // userInfo is made available in Liveblocks presence hooks, e.g. useOthers
   const session = liveblocks.prepareSession(`user-${userId}`, {
-      userInfo: USER_INFO[userId],
+    userInfo: USER_INFO[userId],
   });
 
   // Use a naming pattern to allow access to rooms with a wildcard
@@ -53,34 +39,34 @@ const USER_INFO = [
     color: "#F08385",
     picture: "https://liveblocks.io/avatars/avatar-2.png",
   },
-  {
-    name: "Tatum Paolo",
-    color: "#F0D885",
-    picture: "https://liveblocks.io/avatars/avatar-3.png",
-  },
-  {
-    name: "Anjali Wanda",
-    color: "#85EED6",
-    picture: "https://liveblocks.io/avatars/avatar-4.png",
-  },
-  {
-    name: "Jody Hekla",
-    color: "#85BBF0",
-    picture: "https://liveblocks.io/avatars/avatar-5.png",
-  },
-  {
-    name: "Emil Joyce",
-    color: "#8594F0",
-    picture: "https://liveblocks.io/avatars/avatar-6.png",
-  },
-  {
-    name: "Jory Quispe",
-    color: "#85DBF0",
-    picture: "https://liveblocks.io/avatars/avatar-7.png",
-  },
-  {
-    name: "Quinn Elton",
-    color: "#87EE85",
-    picture: "https://liveblocks.io/avatars/avatar-8.png",
-  },
+  // {
+  //   name: "Tatum Paolo",
+  //   color: "#F0D885",
+  //   picture: "https://liveblocks.io/avatars/avatar-3.png",
+  // },
+  // {
+  //   name: "Anjali Wanda",
+  //   color: "#85EED6",
+  //   picture: "https://liveblocks.io/avatars/avatar-4.png",
+  // },
+  // {
+  //   name: "Jody Hekla",
+  //   color: "#85BBF0",
+  //   picture: "https://liveblocks.io/avatars/avatar-5.png",
+  // },
+  // {
+  //   name: "Emil Joyce",
+  //   color: "#8594F0",
+  //   picture: "https://liveblocks.io/avatars/avatar-6.png",
+  // },
+  // {
+  //   name: "Jory Quispe",
+  //   color: "#85DBF0",
+  //   picture: "https://liveblocks.io/avatars/avatar-7.png",
+  // },
+  // {
+  //   name: "Quinn Elton",
+  //   color: "#87EE85",
+  //   picture: "https://liveblocks.io/avatars/avatar-8.png",
+  // },
 ];

@@ -1,5 +1,6 @@
 # Environment variables
 **/node_modules
 **/.env
+**/.env.local
 **/.idea
 **/.vscode
