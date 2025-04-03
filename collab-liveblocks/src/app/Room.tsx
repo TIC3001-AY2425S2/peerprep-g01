@@ -7,11 +7,17 @@ import { ClientSideSuspense } from "@liveblocks/react";
 import { Loading } from "@/components/Loading";
 
 export function Room({ children }: { children: ReactNode }) {
-  const roomId = useExampleRoomId("liveblocks:examples:nextjs-yjs-codemirror");
-
+  // const roomId = useRoomId("liveblocks:examples:nextjs-yjs-codemirror");
+  const params = useSearchParams();
+  const collabId = params?.get("collabId");
+  if (!collabId) {
+    return <div>Error: Missing collabId</div>;
+  }
+  // const roomId = useRoomId("");
+  
   return (
     <RoomProvider
-      id={roomId}
+      id={collabId}
       initialPresence={{
         cursor: null,
       }}
@@ -25,13 +31,16 @@ export function Room({ children }: { children: ReactNode }) {
  * This function is used when deploying an example on liveblocks.io.
  * You can ignore it completely if you run the example locally.
  */
-function useExampleRoomId(roomId: string) {
-  const params = useSearchParams();
-  const exampleId = params?.get("exampleId");
+// function useRoomId(roomId: string) {
+//   const params = useSearchParams();
+//   const collabId = params?.get("collabId");
+//   const username = params?.get("username");
+//   console.log("collabId: ", collabId);
+//   console.log("username:", username)
+//   const exampleRoomId = useMemo(() => {
+//     // return exampleId ? `${roomId}-${exampleId}` : roomId;
+//     return collabId;
+//   }, [roomId, collabId]);
 
-  const exampleRoomId = useMemo(() => {
-    return exampleId ? `${roomId}-${exampleId}` : roomId;
-  }, [roomId, exampleId]);
-
-  return exampleRoomId;
-}
+//   return exampleRoomId;
+// }

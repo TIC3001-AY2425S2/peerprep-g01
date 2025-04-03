@@ -1,0 +1,4 @@
+{
+  "/page": "app/page.js",
+  "/api/liveblocks-auth/route": "app/api/liveblocks-auth/route.js"
+}
