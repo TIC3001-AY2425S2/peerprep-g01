@@ -34,7 +34,7 @@ As users edit the code, changes will be automatically persisted and synced—all
 
 <p></p>
 
-Alternatively, you can set up your project manually:
+You can set up your project manually:
 
 - Install all dependencies with `npm install`
 - Create an account on [liveblocks.io](https://liveblocks.io/dashboard)
