@@ -20,15 +20,11 @@ const MatchPage = () => {
   
   const collabRoomDataRetry = useRef(0);
   const matchSyncSocket = useRef(null);
-  // const matchedData = useRef(null);
-  // const [roomHostAbortController, setRoomHostAbortController] = useState(null); // Store the controller here
   
   const token = localStorage.getItem('token')
   const tokenDecoded = jwtDecode(token);
-  // console.log('tokenDecoded: ', tokenDecoded)
   const headerWithAuth = {
     ...(token && { 'Authorization': `Bearer ${token}` }), // If token exists, copy the 'Authorization': `Bearer ${token}` to the header dict
-    //...options.headers, // copy other headers to header dict
   };
 
   async function fetchCategories() {
@@ -102,6 +98,13 @@ const MatchPage = () => {
     }
   }
 
+  function resetState(){
+    setMatchCode(0);
+    setMatchedData(null);
+    setCollabRoomData(null);
+    setCollabRoomMessage('');
+  }
+
   // run on load
   useEffect(() => {
     fetchCategories();
@@ -109,20 +112,22 @@ const MatchPage = () => {
 
   // run when user selected a category to get all the questions of the selected category
   useEffect(() => {
+    resetState();
     fetchQuestionsOfSelectedCategory();
   }, [selectedCategory]);
 
   // runs when the questions list is updated with the questions list changed
   useEffect(() => {
+    resetState();
     getUniqueComplexities();
   }, [questionsListOfSelectedCategory]);
 
   useEffect(() => {
+    resetState();
     const isQuestionsListEmpty = questionsListOfSelectedCategory.length === 0;
     if (selectedComplexity && !isQuestionsListEmpty) {
       const filtered = questionsListOfSelectedCategory.filter((q) => q.complexity === selectedComplexity);
       setFilteredQuestions(filtered);
-      setMatchCode(0);
     }
   }, [selectedComplexity, questionsListOfSelectedCategory]);
 
@@ -150,36 +155,41 @@ const MatchPage = () => {
 
   useEffect(() => {
     console.log('collabRoomMessage changed:', collabRoomMessage);
+    console.log('collabRoomDataRetry: ', collabRoomDataRetry);
     const myFunc = async() => {
       if(collabRoomDataRetry.current > 3){
         console.log('collabRoomDataRetry exceed');
         return;
       }
-      if(collabRoomMessage.toLowerCase() === "success"){
+      if(collabRoomMessage.toLowerCase() === "success" || collabRoomMessage.toLowerCase() === "retry"){
         let responseJson = await getCollabRoomData(matchedData.data.matchUuid);
         setCollabRoomData(responseJson);
         setCollabRoomMessage("");
         collabRoomDataRetry.current = 0;
       }
     }
+
     myFunc();
   }, [collabRoomMessage]);
 
   useEffect(() => {
     console.log('collabRoomData changed:', collabRoomData);
-    if (!collabRoomData){
-      return;
-    }
-    else if (collabRoomData.data === null){
-      setCollabRoomMessage("success");
+    
+    // sometimes, the getCollabRoomData() returns a collab data of value null. This is to trigger the function to get the collab data again
+    if(!(collabRoomData?.data) && matchedData){
+      setCollabRoomMessage("retry"); 
       collabRoomDataRetry.current++;
-    }
-    else {
-      console.log('to implement redirect to liveblocks');
     }
   }, [collabRoomData]);
 
-  const handleMatchRandomQuestion = () => {
+  function handleGoToCollab() {
+    const collabId = collabRoomData?.data._id;
+    const url = `http://localhost:3000/?collabId=${collabId}`;
+    resetState();
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  function handleMatchRandomQuestion() {
     console.log("Matching a random question...");
     const randomQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
     setSelectedQuestion(randomQuestion);  // Match a random question
@@ -324,92 +334,110 @@ const MatchPage = () => {
       {/* Buttons */}
         {/* Match Random Question Button (only visible when both filters are selected) */}
         {selectedCategory && selectedComplexity && (
-          <button
-            onClick={(matchCode === 202) ? handleCancelMatch : handleMatchRandomQuestion}
-            className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600"
-          >
-            {(matchCode === 202) ? (
-              <>
-                <span className="animate-pulse">⏳</span> Cancel
-              </>
-            ) : (
-              'Match'
-            )}
-          </button>
+          <div>
+            <button
+              onClick={
+                (matchCode === 0) ? handleMatchRandomQuestion
+                : (matchCode === 202) ? handleCancelMatch
+                : (matchCode === 200 && collabRoomData?.data) ? handleGoToCollab
+                : handleMatchRandomQuestion
+              }
+              className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600"
+            >
+              {(matchCode === 202) ? (
+                <>
+                  <span className="animate-pulse">⏳</span> Cancel
+                </>
+              ) : matchCode === 200 && collabRoomData?.data ? (
+                'Collab with Partner'
+              ) : (
+                'Match'
+              )}
+            </button>
+          </div>
         )}
 
-      {(matchCode !== 0) && (
-        <div className="mt-4 flex items-center space-x-2">
-          {(matchCode === 200 && matchedData && matchedQuestion) ? (
-            <>
-              <span className="font-semibold">
-                <div>Found Match for: <span className="font-bold"><b>{matchedQuestion.title}</b></span></div>
-                {/* <div>Match Info: <span className="font-bold"><b>{JSON.stringify(matchedQuestion)}</b></span></div> */}
-                {/* <div>Match Data: <span className="font-bold"><b>{JSON.stringify(matchedData)}</b></span></div> */}
-                
-                <table className="w-full border-collapse border border-gray-300" style={{ border: '1px solid black', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border p-2">Field</th>
-                      <th className="border p-2">Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="border p-2">Question ID</td>
-                      <td className="border p-2">{matchedQuestion._id}</td>
-                    </tr>
-                    <tr>
-                      <td className="border p-2">Question Title</td>
-                      <td className="border p-2">{matchedQuestion.title}</td>
-                    </tr>
-                    <tr>
-                      <td className="border p-2">Matched User</td>
-                      <td className="border p-2">{matchedData.data.matchHost ? matchedData.data.matchHost.username : matchedData.data.matchGuest.username}</td>
-                    </tr>
-                    <tr>
-                      <td className="border p-2">Match UUID</td>
-                      <td className="border p-2">{matchedData.data.matchUuid}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </span>
-            </>
-          ) : matchCode === 408 ? (
-            <>
-              <span className="font-semibold">
-                No match found. Try again
-              </span>
-            </>
-          ) : matchCode === 409 ? (
-            <>
-              <span className="font-semibold">
-                Match conflict. Try again
-              </span>
-            </>
-          ) : matchCode === 499 ? (
-            <>
-              <span className="font-semibold">
-                Match cancelled
-              </span>
-            </>
-          ) : matchCode === 202 ? (
-            <>
-              <span className="animate-pulse text-yellow-500">⏳</span>
-              <span>Finding Match for: <span className="font-semibold">{selectedQuestion.title}</span></span>
-              <MatchTimer initialSeconds={30}/>
-            </>
-          ) : matchCode === 500 ? (
-            <>
-              <span>Connection to server error</span>
-            </>
-          ) : (
-            <>
-              <span>Other match code {matchCode}</span>
-            </>
-          )}
-        </div>
+      {
+        matchCode === 408 ? (
+          <>
+            <span className="font-semibold">
+              No match found. Try again
+            </span>
+          </>
+        ) : matchCode === 409 ? (
+          <>
+            <span className="font-semibold">
+              Match conflict. Try again
+            </span>
+          </>
+        ) : matchCode === 499 ? (
+          <>
+            <span className="font-semibold">
+              Match cancelled
+            </span>
+          </>
+        ) : matchCode === 202 ? (
+          <>
+            <span className="animate-pulse text-yellow-500">⏳</span>
+            <span>Finding Match for: <span className="font-semibold">{selectedQuestion.title}</span></span>
+            <MatchTimer initialSeconds={30}/>
+          </>
+        ) : matchCode === 500 ? (
+          <>
+            <span>Connection to server error</span>
+          </>
+        ) : matchCode === 0 ? (
+          <>
+            <span></span>
+          </>
+        ) : matchCode === 200 ? (
+          <>
+            <span>Match success</span>
+          </>
+        ) : (
+          <>
+            <span>Other match code {matchCode}</span>
+          </>
+        )
+      }
+
+      {(matchedData && matchedQuestion && collabRoomData?.data) && (
+        <>
+          <div>
+            <table className="w-full border-collapse border border-gray-300" style={{ border: '1px solid black', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border p-2">Field</th>
+                  <th className="border p-2">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="border p-2">Question ID</td>
+                  <td className="border p-2">{matchedQuestion._id}</td>
+                </tr>
+                <tr>
+                  <td className="border p-2">Question Title</td>
+                  <td className="border p-2">{matchedQuestion.title}</td>
+                </tr>
+                <tr>
+                  <td className="border p-2">Matched User</td>
+                  <td className="border p-2">{matchedData.data.matchHost ? matchedData.data.matchHost.username : matchedData.data.matchGuest.username}</td>
+                </tr>
+                <tr>
+                  <td className="border p-2">Match UUID</td>
+                  <td className="border p-2">{matchedData.data.matchUuid}</td>
+                </tr>
+                <tr>
+                  <td className="border p-2">Collab ID</td>
+                  <td className="border p-2">{collabRoomData.data._id}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
+
       {/* Question Table (only show if questions are available) */}
       {selectedCategory && selectedComplexity && filteredQuestions.length > 0 && (
         <table className="w-full border-collapse border border-gray-300">
