@@ -47,10 +47,6 @@ const initializeSocket = (httpServer) => {
               const qMsgContent = qMessage.content.toString();
               const qMsgContentJson = JSON.parse(qMsgContent);
               console.log('[*] syncWithMatchGuest channel.consume message: ', qMsgContent);
-
-              // const status = await getRabbitMQQueueStatus(wsId, "http://localhost:15672", "guest", "guest");
-              // console.log('[*] syncWithMatchGuest getRabbitMQQueueStatus: ', status)
-
               channel.ack(qMessage);
               await channel.cancel(myConsumerTag);
               const qMatchGuestId = qMsgContentJson.data.matchGuest.id;
@@ -131,10 +127,6 @@ const initializeSocket = (httpServer) => {
               const qMsgContent = qMessage.content.toString();
               const qMsgContentJson = JSON.parse(qMsgContent);
               console.log("syncWithMatchHost channel.consume message: ", qMsgContent);
-
-              // const status = await getRabbitMQQueueStatus(wsId, "http://localhost:15672", "guest", "guest");
-              // console.log('[*] syncWithMatchHost getRabbitMQQueueStatus: ', status)
-
               channel.ack(qMessage);
               await channel.cancel(myConsumerTag);
               const qMatchHostId = qMsgContentJson.data.matchHost.id;

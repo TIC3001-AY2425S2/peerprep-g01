@@ -62,7 +62,7 @@ services:
     ports:
       - "3003:3003"
     environment:
-      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_HOST=host.docker.internal
       - RABBITMQ_PORT=5672
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
@@ -70,6 +70,8 @@ services:
       - rabbitmq
       - user-service
     container_name: matching-service
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   rabbitmq:
     image: rabbitmq:3-management
