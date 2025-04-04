@@ -11,6 +11,7 @@ import {
   updateCollabByMatchUuid as _updateCollabByMatchUuid,
   deleteCollabById as _deleteCollabById,
 } from "../model/repository.js";
+import "dotenv/config";
 
 const RABBITMQ_HOST = process.env.RABBITMQ_HOST || 'localhost';
 const RABBITMQ_PORT = process.env.RABBITMQ_PORT || 5672;
