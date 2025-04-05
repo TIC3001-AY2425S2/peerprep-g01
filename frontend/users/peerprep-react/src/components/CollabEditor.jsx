@@ -19,7 +19,7 @@ function CollabEditor() {
 
     // Replace 'your-room-name' with a unique name for your document
     const provider = new WebsocketProvider(
-      'ws://localhost:3004', // The URL of your y-websocket server
+      'ws://localhost:3005', // The URL of your y-websocket server
       collabId,
       ydoc
     );

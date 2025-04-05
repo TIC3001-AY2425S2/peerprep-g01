@@ -119,7 +119,7 @@ export async function findCollabByMatchUuid(req, res){
     const matchUuid = req.params.matchUuid;
     console.log('findCollabByMatchUuid matchUuid: ', matchUuid);
     const collab = await _findCollabByMatchUuid(matchUuid);
-    console.log('findCollabByMatchUuid collab: ', collab);
+    console.log('findCollabByMatchUuid collab: ', JSON.stringify(collab));
     return res.status(200).json( {message: 'Success', data: collab});
   }
   catch (err){
