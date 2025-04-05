@@ -37,10 +37,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3001:3001"
-    env_file: .env
-    environment:
-      - MONGODB_URI=${MONGODB_URI}/${USER_DB_NAME}
-      - JWT_SECRET=${JWT_SECRET}
+    env_file: 
+      - path: ./user-service/.env
+    # environment:
+    #   - MONGODB_URI=${MONGODB_URI}/${USER_DB_NAME}
+    #   - JWT_SECRET=${JWT_SECRET}
     container_name: user-service
 
   question-service:
@@ -49,10 +50,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3002:3002"
-    env_file: .env
-    environment:
-      - MONGODB_URI=${MONGODB_URI}/${QUESTION_DB_NAME}
-      - JWT_SECRET=${JWT_SECRET}
+    env_file: 
+      - path: ./question-service/.env
+    # environment:
+    #   - MONGODB_URI=${MONGODB_URI}/${QUESTION_DB_NAME}
+    #   - JWT_SECRET=${JWT_SECRET}
     container_name: question-service
 
   matching-service:
@@ -61,15 +63,43 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3003:3003"
-    environment:
-      - RABBITMQ_HOST=host.docker.internal
-      - RABBITMQ_PORT=5672
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
+    env_file:
+      - path: ./matching-service/.env
+    # environment:
+    #   - RABBITMQ_HOST=host.docker.internal
+    #   - RABBITMQ_PORT=5672
+    #   - RABBITMQ_DEFAULT_USER=guest
+    #   - RABBITMQ_DEFAULT_PASS=guest
     depends_on:
       - rabbitmq
       - user-service
     container_name: matching-service
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      
+  collab-service:
+    build:
+      context: ./collab-service
+      dockerfile: Dockerfile
+    ports:
+      - "3004:3004"
+    env_file:
+      - path: ./collab-service/.env
+    depends_on:
+      - rabbitmq
+    container_name: collab-service
+    extra_hosts:
+      - "host.docker.internal:host-gateway"      
+
+  collab-y-websocket:
+    build:
+      context: ./collab-y-websocket
+      dockerfile: Dockerfile
+    ports:
+      - "3005:3005"
+    env_file:
+      - path: ./collab-y-websocket/.env
+    container_name: collab-y-websocket
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

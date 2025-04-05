@@ -1,0 +1,1 @@
+console.log(`run 'npx y-websocket'`);
