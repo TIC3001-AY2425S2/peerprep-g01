@@ -184,7 +184,8 @@ const MatchPage = () => {
 
   function handleGoToCollab() {
     const collabId = collabRoomData?.data._id;
-    const url = `http://localhost:3000/?collabId=${collabId}`;
+    // const url = `http://localhost:3000/?collabId=${collabId}`;
+    const url = `http://localhost:3000/${collabId}`;
     resetState();
     window.open(url, '_blank', 'noopener,noreferrer');
   }
