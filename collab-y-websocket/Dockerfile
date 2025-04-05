@@ -13,5 +13,8 @@ COPY . .
 
 EXPOSE 3005
 
+ENV PORT=3005
+ENV HOST=0.0.0.0
+ENV YPERSISTENCE=./db
 
-ENTRYPOINT ["npx", "y-websocket" ] 
+ENTRYPOINT ["npx", "y-websocket"] 

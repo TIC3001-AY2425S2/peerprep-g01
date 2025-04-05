@@ -10,6 +10,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@y/websocket-server": "^0.1.1"
+    "@y/websocket-server": "^0.1.1",
+    "dotenv": "^16.4.7",
+    "y-leveldb": "^0.1.2"
   }
 }

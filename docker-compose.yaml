@@ -89,7 +89,7 @@ services:
       - rabbitmq
     container_name: collab-service
     extra_hosts:
-      - "host.docker.internal:host-gateway"      
+      - "host.docker.internal:host-gateway"
 
   collab-y-websocket:
     build:
@@ -97,8 +97,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3005:3005"
-    env_file:
-      - path: ./collab-y-websocket/.env
     container_name: collab-y-websocket
     extra_hosts:
       - "host.docker.internal:host-gateway"
