@@ -6,7 +6,14 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - WATCHPACK_POLLING=true
+      - NODE_OPTIONS=--max-old-space-size=4096
+      - CHOKIDAR_USEPOLLING=false
+      - FAST_REFRESH=false
+      - DISABLE_ESLINT_PLUGIN=true
+    deploy:
+      resources:
+        limits:
+          memory: 4G
     volumes:
       - ./frontend/admin:/app
       - /app/node_modules
@@ -22,7 +29,14 @@ services:
     ports:
       - "2999:2999"
     environment:
-      - WATCHPACK_POLLING=true
+      - NODE_OPTIONS=--max-old-space-size=4096
+      - CHOKIDAR_USEPOLLING=false
+      - FAST_REFRESH=false
+      - DISABLE_ESLINT_PLUGIN=true
+    deploy:
+      resources:
+        limits:
+          memory: 4G
     volumes:
       - ./frontend/users/peerprep-react:/app
       - /app/node_modules
@@ -65,11 +79,11 @@ services:
       - "3003:3003"
     env_file:
       - path: ./matching-service/.env
-    # environment:
-    #   - RABBITMQ_HOST=host.docker.internal
-    #   - RABBITMQ_PORT=5672
-    #   - RABBITMQ_DEFAULT_USER=guest
-    #   - RABBITMQ_DEFAULT_PASS=guest
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
     depends_on:
       - rabbitmq
       - user-service
@@ -85,6 +99,11 @@ services:
       - "3004:3004"
     env_file:
       - path: ./collab-service/.env
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
     depends_on:
       - rabbitmq
     container_name: collab-service
