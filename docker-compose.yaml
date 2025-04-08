@@ -6,14 +6,19 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - WATCHPACK_POLLING=true
-    volumes:
-      - ./frontend/admin:/app
-      - /app/node_modules
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=2048
     depends_on:
       - user-service
       - question-service
     container_name: frontend-admin
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    restart: unless-stopped
 
   frontend-user:
     build:
@@ -22,14 +27,19 @@ services:
     ports:
       - "2999:2999"
     environment:
-      - WATCHPACK_POLLING=true
-    volumes:
-      - ./frontend/users/peerprep-react:/app
-      - /app/node_modules
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=2048
     depends_on:
       - user-service
       - question-service
     container_name: frontend-user
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    restart: unless-stopped
 
   user-service:
     build:
@@ -39,10 +49,14 @@ services:
       - "3001:3001"
     env_file: 
       - path: ./user-service/.env
-    # environment:
-    #   - MONGODB_URI=${MONGODB_URI}/${USER_DB_NAME}
-    #   - JWT_SECRET=${JWT_SECRET}
     container_name: user-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
 
   question-service:
     build:
@@ -52,10 +66,17 @@ services:
       - "3002:3002"
     env_file: 
       - path: ./question-service/.env
-    # environment:
-    #   - MONGODB_URI=${MONGODB_URI}/${QUESTION_DB_NAME}
-    #   - JWT_SECRET=${JWT_SECRET}
     container_name: question-service
+    depends_on:
+      user-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
 
   matching-service:
     build:
@@ -65,18 +86,14 @@ services:
       - "3003:3003"
     env_file:
       - path: ./matching-service/.env
-    # environment:
-    #   - RABBITMQ_HOST=host.docker.internal
-    #   - RABBITMQ_PORT=5672
-    #   - RABBITMQ_DEFAULT_USER=guest
-    #   - RABBITMQ_DEFAULT_PASS=guest
     depends_on:
-      - rabbitmq
-      - user-service
+      rabbitmq:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
     container_name: matching-service
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-      
+    restart: unless-stopped
+
   collab-service:
     build:
       context: ./collab-service
@@ -86,10 +103,10 @@ services:
     env_file:
       - path: ./collab-service/.env
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     container_name: collab-service
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
 
   collab-y-websocket:
     build:
@@ -109,9 +126,11 @@ services:
     container_name: rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
       retries: 5
+      start_period: 40s
+    restart: unless-stopped
 
 volumes:
   mongodb_data: 

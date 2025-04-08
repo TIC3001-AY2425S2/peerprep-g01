@@ -19,8 +19,8 @@ COPY . .
 # Production stage
 FROM node:20-slim
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y python3 make g++
+# Install build dependencies and curl for health checks
+RUN apt-get update && apt-get install -y python3 make g++ curl
 
 WORKDIR /app
 
