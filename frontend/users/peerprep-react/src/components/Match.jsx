@@ -144,10 +144,17 @@ const MatchPage = () => {
     const myFunc = async() => {
       if(matchedData){
         const questionId = matchedData.data.matchQuestionId;
+        console.log('Setting up collab room with:', {
+          matchUuid: matchedData.data.matchUuid,
+          questionId: questionId,
+          userId: tokenDecoded.id
+        });
         setMatchedQuestion(questionsListOfSelectedCategory.find((question) => question._id === questionId));
-        const responseJson = await setupCollabRoom(matchedData.data.matchUuid, matchedData.data.matchQuestionId, tokenDecoded.id);
-        console.log('matchedData responseJson.message: ', responseJson.message);
-        setCollabRoomMessage(responseJson.message);
+        const responseJson = await setupCollabRoom(matchedData.data.matchUuid, questionId, tokenDecoded.id);
+        console.log('setupCollabRoom response:', responseJson);
+        if (responseJson && responseJson.message) {
+          setCollabRoomMessage(responseJson.message.toLowerCase());
+        }
       }
     }
     myFunc();
@@ -155,20 +162,27 @@ const MatchPage = () => {
 
   useEffect(() => {
     console.log('collabRoomMessage changed:', collabRoomMessage);
-    console.log('collabRoomDataRetry: ', collabRoomDataRetry);
+    console.log('collabRoomDataRetry:', collabRoomDataRetry.current);
     const myFunc = async() => {
       if(collabRoomDataRetry.current > 3){
         console.log('collabRoomDataRetry exceed');
         return;
       }
-      if(collabRoomMessage.toLowerCase() === "success" || collabRoomMessage.toLowerCase() === "retry"){
+      if(collabRoomMessage === "success" || collabRoomMessage === "retry"){
+        console.log('Fetching collab room data for matchUuid:', matchedData.data.matchUuid);
         let responseJson = await getCollabRoomData(matchedData.data.matchUuid);
-        setCollabRoomData(responseJson);
-        setCollabRoomMessage("");
-        collabRoomDataRetry.current = 0;
+        console.log('getCollabRoomData response:', responseJson);
+        if (responseJson && responseJson.data) {
+          setCollabRoomData(responseJson);
+          setCollabRoomMessage("");
+          collabRoomDataRetry.current = 0;
+        } else {
+          console.log('No collab room data yet, retrying...');
+          setCollabRoomMessage("retry");
+          collabRoomDataRetry.current++;
+        }
       }
     }
-
     myFunc();
   }, [collabRoomMessage]);
 
@@ -349,8 +363,12 @@ const MatchPage = () => {
                 <>
                   <span className="animate-pulse">⏳</span> Cancel
                 </>
-              ) : matchCode === 200 && collabRoomData?.data ? (
-                'Collab with Partner'
+              ) : (matchCode === 200) ? (
+                collabRoomData?.data ? 'Collab with Partner' : (
+                  <>
+                    <span className="animate-pulse">⏳</span> Setting up collab room...
+                  </>
+                )
               ) : (
                 'Match'
               )}
