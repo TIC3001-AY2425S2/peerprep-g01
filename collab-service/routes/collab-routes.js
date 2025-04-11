@@ -1,11 +1,13 @@
 import express from "express";
 
 import { verifyAccessToken } from "../middleware/basic-access-control.js";
-import { produceCollabQueue, deleteCollabById, findCollabById, findCollabByMatchUuid, findCollabsByQuestionId, findCollabsByUserId, getAllCollabs, updateCollabById } from "../controller/collab-controller.js";
+// import { produceCollabQueue, deleteCollabById, findCollabById, findCollabByMatchUuid, findCollabsByQuestionId, findCollabsByUserId, getAllCollabs, updateCollabById, upsertCollabByMatchUuid } from "../controller/collab-controller.js";
+import { deleteCollabById, findCollabById, findCollabByMatchUuid, findCollabsByQuestionId, findCollabsByUserId, getAllCollabs, updateCollabById, upsertCollabByMatchUuid } from "../controller/collab-controller.js";
 
 const router = express.Router();
 
-router.post("/create-collab", verifyAccessToken, produceCollabQueue);
+// router.post("/create-collab", verifyAccessToken, produceCollabQueue);
+router.post("/create-collab", verifyAccessToken, upsertCollabByMatchUuid);
 router.get("/all", verifyAccessToken, getAllCollabs);
 router.get("/id/:id", verifyAccessToken, findCollabById);
 router.get("/userId/:userId", verifyAccessToken, findCollabsByUserId);

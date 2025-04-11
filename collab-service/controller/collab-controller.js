@@ -8,54 +8,56 @@ import {
   findCollabsByQuestionId as _findCollabsByQuestionId,
   findCollabsByUserId as _findCollabsByUserId,
   updateCollabById as _updateCollabById,
-  updateCollabByMatchUuid as _updateCollabByMatchUuid,
+  upsertCollabByMatchUuid as _upsertCollabByMatchUuid,
   deleteCollabById as _deleteCollabById,
 } from "../model/repository.js";
 import "dotenv/config";
 
-const RABBITMQ_HOST = process.env.RABBITMQ_HOST || 'localhost';
-const RABBITMQ_PORT = process.env.RABBITMQ_PORT || 5672;
-const RABBITMQ_USER = process.env.RABBITMQ_DEFAULT_USER || 'guest';
-const RABBITMQ_PASS = process.env.RABBITMQ_DEFAULT_PASS || 'guest';
-const queueName = "collabQueue";
-let connection;
-let channel;
+// const RABBITMQ_HOST = process.env.RABBITMQ_HOST || 'localhost';
+// const RABBITMQ_PORT = process.env.RABBITMQ_PORT || 5672;
+// const RABBITMQ_USER = process.env.RABBITMQ_DEFAULT_USER || 'guest';
+// const RABBITMQ_PASS = process.env.RABBITMQ_DEFAULT_PASS || 'guest';
+// const queueName = "collabQueue";
+// let connection;
+// let channel;
 
-await connectToRabbitMQ();
-await consumeCollabQueue();
+// await connectToRabbitMQ();
+// await consumeCollabQueue();
 
-// Function to connect to RabbitMQ with retries
-async function connectToRabbitMQ(retries = 5, interval = 5000) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      console.log(`Attempting to connect to RabbitMQ (attempt ${i + 1}/${retries})...`);
-      // Use a properly formatted AMQP URL
-      const amqpUrl = `amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@${RABBITMQ_HOST}`;
-      console.log(`Connecting to RabbitMQ at: ${amqpUrl}`);
-      connection = await amqp.connect(amqpUrl);
-      channel = await connection.createChannel();
-      console.log('Successfully connected to RabbitMQ');
-      return;
-    } catch (error) {
-      console.log(`Failed to connect to RabbitMQ (attempt ${i + 1}/${retries}):`, error.message);
-      if (i < retries - 1) {
-        console.log(`Retrying in ${interval/1000} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, interval));
-      } else {
-        throw error;
-      }
-    }
-  }
-}
+// // Function to connect to RabbitMQ with retries
+// async function connectToRabbitMQ(retries = 5, interval = 5000) {
+//   for (let i = 0; i < retries; i++) {
+//     try {
+//       console.log(`Attempting to connect to RabbitMQ (attempt ${i + 1}/${retries})...`);
+//       // Use a properly formatted AMQP URL
+//       const amqpUrl = `amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@${RABBITMQ_HOST}`;
+//       console.log(`Connecting to RabbitMQ at: ${amqpUrl}`);
+//       connection = await amqp.connect(amqpUrl);
+//       channel = await connection.createChannel();
+//       console.log('Successfully connected to RabbitMQ');
+//       return;
+//     } catch (error) {
+//       console.log(`Failed to connect to RabbitMQ (attempt ${i + 1}/${retries}):`, error.message);
+//       if (i < retries - 1) {
+//         console.log(`Retrying in ${interval/1000} seconds...`);
+//         await new Promise(resolve => setTimeout(resolve, interval));
+//       } else {
+//         throw error;
+//       }
+//     }
+//   }
+// }
 
-export async function produceCollabQueue(req, res) {
+export async function upsertCollabByMatchUuid(req, res) {
   try {
     const { matchUuid, userId, questionId } = req.body;
     if (!(matchUuid, userId, questionId)){
       return res.status(400).json({ message: "missing parameter" }); 
     }
-    await channel.sendToQueue(queueName, Buffer.from(JSON.stringify(req.body)));
-    return res.status(202).json({ message: "success" });
+    const userIds = [ userId ];
+    const collab = await _upsertCollabByMatchUuid(matchUuid, questionId, userIds);
+    console.log('upsertCollabByMatchUuid: ', JSON.stringify(formatCollabResponse(collab)));
+    return res.status(200).json( {message: 'Success', data: formatCollabResponse(collab)});
   }
   catch (err) {
     console.error(err.message);
@@ -63,33 +65,48 @@ export async function produceCollabQueue(req, res) {
   }
 }
 
-export async function consumeCollabQueue() {
-  try {
-    const queue = await channel.assertQueue(queueName, { durable: false, arguments: { "x-message-ttl": 30000 }});
-    await channel.consume(queueName, (message) => {
-      const myConsume = async() => {
-        try{
-          const msgContent = message.content.toString();
-          const msgContentJson = JSON.parse(msgContent);
-          const { matchUuid, userId, questionId } = msgContentJson;
-          console.log("consumeCollabQueue channel.consume message: ", msgContent);
-          const userIds = [ userId ];
-          const collab = await _updateCollabByMatchUuid(matchUuid, questionId, userIds);
-          console.log('consumeCollabQueue collab: ', JSON.stringify(formatCollabResponse(collab)));
-          channel.ack(message);
-        }
-        catch(err){
-          console.error('consumeCollabQueue channel.consume error: ', err);
-        }
-      }
-      myConsume();
-    });
-  }
-  catch (err) {
-      console.error(err.message);
-      return res.status(500).json({ message: "error" });
-  }
-}
+// export async function produceCollabQueue(req, res) {
+//   try {
+//     const { matchUuid, userId, questionId } = req.body;
+//     if (!(matchUuid, userId, questionId)){
+//       return res.status(400).json({ message: "missing parameter" }); 
+//     }
+//     await channel.sendToQueue(queueName, Buffer.from(JSON.stringify(req.body)));
+//     return res.status(202).json({ message: "success" });
+//   }
+//   catch (err) {
+//     console.error(err.message);
+//     return res.status(500).json({ message: "error" });
+//   }
+// }
+
+// export async function consumeCollabQueue() {
+//   try {
+//     const queue = await channel.assertQueue(queueName, { durable: false, arguments: { "x-message-ttl": 30000 }});
+//     await channel.consume(queueName, (message) => {
+//       const myConsume = async() => {
+//         try{
+//           const msgContent = message.content.toString();
+//           const msgContentJson = JSON.parse(msgContent);
+//           const { matchUuid, userId, questionId } = msgContentJson;
+//           console.log("consumeCollabQueue channel.consume message: ", msgContent);
+//           const userIds = [ userId ];
+//           const collab = await _upsertCollabByMatchUuid(matchUuid, questionId, userIds);
+//           console.log('consumeCollabQueue collab: ', JSON.stringify(formatCollabResponse(collab)));
+//           channel.ack(message);
+//         }
+//         catch(err){
+//           console.error('consumeCollabQueue channel.consume error: ', err);
+//         }
+//       }
+//       myConsume();
+//     });
+//   }
+//   catch (err) {
+//       console.error(err.message);
+//       return res.status(500).json({ message: "error" });
+//   }
+// }
 
 export async function getAllCollabs(req, res){
   try{

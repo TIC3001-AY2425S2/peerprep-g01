@@ -53,7 +53,7 @@ export async function updateCollabById(id, matchUuid, questionId, userIds) {
     );
 }
 
-export async function updateCollabByMatchUuid(matchUuid, questionId, userId){
+export async function upsertCollabByMatchUuid(matchUuid, questionId, userId){
   return CollabModel.findOneAndUpdate(
     { matchUuid },
     {
