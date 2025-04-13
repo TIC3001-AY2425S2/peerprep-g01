@@ -14,7 +14,7 @@ export const router = createBrowserRouter([
   {path: '/login', element: <Login />},
   {path: '/register', element: <Register />},
   {path: '/match', element: <Match />},
-  {path: '/collab/:collabId', element: <CollabEditor />}
+  {path: '/collab/:collabId/:questionId', element: <CollabEditor />}
 ]);
 
 createRoot(document.getElementById('root')).render( 

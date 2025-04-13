@@ -5,40 +5,24 @@
   text-align: center;
 }
 
+.full-border-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.full-border-table th,
+.full-border-table td {
+  border: 1px solid black;
+  padding: 8px;
+  text-align: left;
+}
+
 .editor-wrapper {
   all: initial; /* resets all inherited styles */
   font-size: 20px; /* explicitly set what you need */
   text-align: left;
   width: 800px;
   height: 600px;
-}
-
-.cm-selectionMatch,
-.cm-yRemoteSelection,
-.cm-yRemoteSelectionHead {
-  background-color: transparent !important;
-  position: relative;
-}
-
-.cm-yRemoteSelection {
-  background-color: rgba(0, 0, 255, 0.2) !important; /* fallback blue */
-}
-
-
-.cm-yRemoteSelectionHead::after {
-  content: '';
-  position: absolute;
-  right: -1px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background-color: blue;
-}
-
-.connected-users {
-  display: flex;
-  gap: 8px;
-  padding: 0.5rem;
 }
 
 .user-badge {

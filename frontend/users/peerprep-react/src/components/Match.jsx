@@ -198,8 +198,8 @@ const MatchPage = () => {
 
   function handleGoToCollab() {
     const collabId = collabRoomData?.data._id;
-    // const url = `http://localhost:3000/?collabId=${collabId}`;
-    const url = `http://localhost:2999/collab/${collabId}`;
+    const questionId = collabRoomData?.data.questionId;
+    const url = `http://localhost:2999/collab/${collabId}/${questionId}`;
     resetState();
     window.open(url, '_blank', 'noopener,noreferrer');
   }
@@ -416,7 +416,7 @@ const MatchPage = () => {
           <h1 style={{fontSize: "36px",fontWeight: "500",marginBottom: "30px",color: "#333"}}>Matching In Progress</h1>
           
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
-            <MatchTimer />
+            <MatchTimer initialSeconds={30}/>
           </div>
           
           <p style={{
@@ -548,7 +548,7 @@ const MatchPage = () => {
           padding: "30px",
           textAlign: "center"
         }}>
-          <h1 style={{fontSize: "36px",fontWeight: "500",marginBottom: "30px",color: "#333",color: "#f44336"}}>Error</h1>
+          <h1 style={{fontSize: "36px",fontWeight: "500",marginBottom: "30px",color: "#f44336"}}>Error</h1>
           <p style={{fontSize: "16px",color: "#666",marginBottom: "25px"}}>Something went wrong. Please try again.</p>
           
           <button
@@ -573,7 +573,7 @@ const MatchPage = () => {
       {(matchedData && matchedQuestion && collabRoomData?.data) && (
         <>
           <div>
-            <table className="w-full border-collapse border border-gray-300" style={{ border: '1px solid black', borderCollapse: 'collapse' }}>
+            <table className="full-border-table">
               <thead>
                 <tr className="bg-gray-100">
                   <th className="border p-2">Field</th>
