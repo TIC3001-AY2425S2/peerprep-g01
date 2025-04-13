@@ -5,6 +5,55 @@
   text-align: center;
 }
 
+.editor-wrapper {
+  all: initial; /* resets all inherited styles */
+  font-size: 20px; /* explicitly set what you need */
+  text-align: left;
+  width: 800px;
+  height: 600px;
+}
+
+.cm-selectionMatch,
+.cm-yRemoteSelection,
+.cm-yRemoteSelectionHead {
+  background-color: transparent !important;
+  position: relative;
+}
+
+.cm-yRemoteSelection {
+  background-color: rgba(0, 0, 255, 0.2) !important; /* fallback blue */
+}
+
+
+.cm-yRemoteSelectionHead::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: blue;
+}
+
+.connected-users {
+  display: flex;
+  gap: 8px;
+  padding: 0.5rem;
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.875rem;
+}
+
+.user-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;

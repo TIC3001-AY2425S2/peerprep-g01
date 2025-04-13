@@ -1,61 +1,99 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
-import { MonacoBinding } from 'y-monaco'; // If you're using Monaco
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
+import { yCollab } from 'y-codemirror.next';
+import { EditorView, basicSetup } from 'codemirror';
+import { javascript } from '@codemirror/lang-javascript';
+import { EditorState } from '@codemirror/state';
+import { jwtDecode } from "jwt-decode";
 
 function CollabEditor() {
-  const { collabId } = useParams(); // Get the roomId from the URL
-  console.log('collabId2: ', collabId);
+  const { collabId } = useParams();
   const editorRef = useRef(null);
-  const ydocRef = useRef(null);
-  const providerRef = useRef(null);
-  const typeRef = useRef(null);
+  const [provider, setProvider] = useState(null);
+  const [users, setUsers] = useState([]);
+  
+  const token = localStorage.getItem('token')
+  const tokenDecoded = jwtDecode(token);
+
+  useEffect(() => {
+    if (!provider){
+      return;
+    }
+    console.log('provider: ', provider)
+    const updateUsers = () => {
+      console
+      const states = Array.from(provider.awareness.getStates().values());
+      setUsers(states.map(s => s.user).filter(Boolean));
+      console.log('users: ', users);
+    };
+  
+    provider.awareness.on('change', updateUsers);
+    updateUsers(); // Initial load
+  
+    return () => {
+      provider.awareness.off('change', updateUsers);
+    };
+  }, [provider]);
 
   useEffect(() => {
     const ydoc = new Y.Doc();
-    ydocRef.current = ydoc;
+    const provider = new WebsocketProvider('ws://localhost:3005', collabId, ydoc);
+    setProvider(provider);
+    const yText = ydoc.getText('codemirror');
 
-    // Replace 'your-room-name' with a unique name for your document
-    const provider = new WebsocketProvider(
-      'ws://localhost:3005', // The URL of your y-websocket server
-      collabId,
-      ydoc
-    );
-    providerRef.current = provider;
-    const type = ydocRef.current.getText('monaco')
-    typeRef.current = type;
+    const awareness = provider.awareness;
 
-    const yText = ydoc.getText('monaco'); // Or another Yjs type
+    // Set local awareness (name & color)
+    awareness.setLocalStateField('user', {
+      name: tokenDecoded.username,
+      color: `hsl(${Math.random() * 360}, 100%, 70%)`
+    });
 
-    const editor = monaco.editor.create(document.getElementById('monaco-editor-container'), {
-      value: '', // MonacoBinding overwrites this value with the content of type
-      language: 'javascript',
-      automaticLayout: true,
-    })
-    editorRef.current = editor;
+    const state = EditorState.create({
+      extensions: [
+        basicSetup,
+        javascript(),
+        yCollab(yText, awareness, {
+          awarenessField: 'user' // default, but explicit
+        })
+      ]
+    });
 
-    if (editorRef.current) {
-      console.log('editorRef: ', editorRef);
-      const monacoEditor = editorRef.current;
-      const binding = new MonacoBinding(yText, monacoEditor.getModel(), new Set([monacoEditor]), provider.awareness);
+    const view = new EditorView({
+      state,
+      parent: document.getElementById('codemirror-editor-container')
+    });
 
-      // return () => {
-      //   binding.destroy();
-      //   provider.disconnect();
-      //   ydoc.destroy();
-      // };
-    }
+    editorRef.current = view;
 
-    return () => {}; // Cleanup for initial render
+    return () => {
+      view.destroy();
+      provider.destroy();
+      ydoc.destroy();
+    };
   }, []);
 
   return (
-    <div
-      id="monaco-editor-container"
-      style={{ width: '800px', height: '600px' }}
-    />
+    <div className="editor-container">
+        <div className="user-list">
+          {users.map((user, index) => (
+            <div key={index} className="user-badge" title={user.name}>
+              <div
+                className="user-color"
+                style={{ backgroundColor: user.color }}
+              />
+              <span>{user.name}</span>
+            </div>
+          ))}
+        </div>
+
+        <div
+          id="codemirror-editor-container"
+          className="editor-wrapper"
+        />
+    </div>
   );
 }
 
