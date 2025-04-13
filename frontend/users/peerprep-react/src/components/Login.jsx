@@ -62,38 +62,12 @@ const Login = () => {
         alignItems: "center",
         borderBottom: "1px solid #eee"
       }}>
-        <Link to="/" style={{
-          fontSize: "30px",
-          fontWeight: "bold",
-          textDecoration: "none",
-          color: "#333"
-        }}>
-          PeerPrep
-        </Link>
-        <nav style={{
-          display: "flex",
-          gap: "25px"
-        }}>
-          <Link to="/login" style={{
-            textDecoration: "none",
-            color: "#333",
-            fontWeight: "500"
-          }}>Sign In</Link>
-          <Link to="/about" style={{
-            textDecoration: "none",
-            color: "#333",
-            fontWeight: "500"
-          }}>About</Link>
-          <Link to="/contact" style={{
-            textDecoration: "none",
-            color: "#333",
-            fontWeight: "500"
-          }}>Contact</Link>
-          <Link to="/register" style={{
-            textDecoration: "none",
-            color: "#333",
-            fontWeight: "500"
-          }}>Sign Up</Link>
+        <Link to="/" style={{fontSize: "30px",fontWeight: "bold",textDecoration: "none",color: "#333"}}>PeerPrep</Link>
+        <nav style={{display: "flex",gap: "25px"}}>
+          <Link to="/login" style={{textDecoration: "none",color: "#333",fontWeight: "500"}}>Sign In</Link>
+          <Link to="/about" style={{textDecoration: "none",color: "#333",fontWeight: "500"}}>About</Link>
+          <Link to="/contact" style={{textDecoration: "none",color: "#333",fontWeight: "500"}}>Contact</Link>
+          <Link to="/register" style={{textDecoration: "none",color: "#333",fontWeight: "500"}}>Sign Up</Link>
         </nav>
       </header>
 
@@ -114,26 +88,13 @@ const Login = () => {
           maxWidth: "400px",
           padding: "30px"
         }}>
-          <h1 style={{
-            fontSize: "36px",
-            fontWeight: "500",
-            textAlign: "center",
-            marginBottom: "40px",
-            color: "#333"
-          }}>Login</h1>
+          <h1 style={{fontSize: "36px",fontWeight: "500",textAlign: "center",marginBottom: "40px",color: "#333"}}>Login</h1>
           
           {error && <p style={{ color: "red", textAlign: "center", marginBottom: "15px" }}>{error}</p>}
           
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: "25px" }}>
-              <label style={{
-                display: "block",
-                marginBottom: "8px",
-                color: "#333",
-                fontWeight: "500",
-                fontSize: "18px",
-                textAlign: "left"
-              }}>Email</label>
+              <label style={{display: "block",marginBottom: "8px",color: "#333",fontWeight: "500",fontSize: "18px",textAlign: "left"}}>Email</label>
               <input
                 type="email"
                 name="email"
@@ -155,14 +116,7 @@ const Login = () => {
             </div>
             
             <div style={{ marginBottom: "30px" }}>
-              <label style={{
-                display: "block",
-                marginBottom: "8px",
-                color: "#333",
-                fontWeight: "500",
-                fontSize: "18px",
-                textAlign: "left"
-              }}>Password</label>
+              <label style={{display: "block",marginBottom: "8px",color: "#333",fontWeight: "500",fontSize: "18px",textAlign: "left"}}>Password</label>
               <div style={{ position: "relative" }}>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -223,16 +177,8 @@ const Login = () => {
               display: "flex",
               justifyContent: "space-between"
             }}>
-              <a href="/forgot-password" style={{
-                color: "#4285f4",
-                textDecoration: "none",
-                fontSize: "16px"
-              }}>Forgot Password?</a>
-              <a href="/register" style={{
-                color: "#4285f4",
-                textDecoration: "none",
-                fontSize: "16px"
-              }}>Sign Up</a>
+              <a href="/forgot-password" style={{color: "#4285f4",textDecoration: "none",fontSize: "16px"}}>Forgot Password?</a>
+              <a href="/register" style={{color: "#4285f4",textDecoration: "none",fontSize: "16px"}}>Sign Up</a>
             </div>
           </form>
         </div>

@@ -89,43 +89,13 @@ const Register = () => {
         alignItems: "center",
         borderBottom: "1px solid #eee"
       }}>
-        <Link to="/" style={{
-          fontSize: "30px",
-          fontWeight: "bold",
-          textDecoration: "none",
-          color: "#333"
-        }}>
-          PeerPrep
-        </Link>
-        <nav style={{
-          display: "flex",
-          gap: "25px"
-        }}>
-          <Link to="/" style={{
-            textDecoration: "none",
-            color: "#333",
-            fontWeight: "500"
-          }}>Home</Link>
-          <Link to="/about" style={{
-            textDecoration: "none",
-            color: "#333",
-            fontWeight: "500"
-          }}>About</Link>
-          <Link to="/contact" style={{
-            textDecoration: "none",
-            color: "#333",
-            fontWeight: "500"
-          }}>Contact</Link>
-          <Link to="/login" style={{
-            textDecoration: "none",
-            color: "#333",
-            fontWeight: "500"
-          }}>Login</Link>
-          <Link to="/register" style={{
-            textDecoration: "none",
-            color: "#333",
-            fontWeight: "500"
-          }}>Sign Up</Link>
+        <Link to="/" style={{fontSize: "30px",fontWeight: "bold",textDecoration: "none",color: "#333"}}>PeerPrep</Link>
+        <nav style={{display: "flex",gap: "25px"}}>
+          <Link to="/" style={{textDecoration: "none",color: "#333",fontWeight: "500"}}>Home</Link>
+          <Link to="/about" style={{textDecoration: "none",color: "#333",fontWeight: "500"}}>About</Link>
+          <Link to="/contact" style={{textDecoration: "none",color: "#333",fontWeight: "500"}}>Contact</Link>
+          <Link to="/login" style={{textDecoration: "none",color: "#333",fontWeight: "500"}}>Login</Link>
+          <Link to="/register" style={{textDecoration: "none",color: "#333",fontWeight: "500"}}>Sign Up</Link>
         </nav>
       </header>
 
@@ -158,14 +128,7 @@ const Register = () => {
           
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: "20px" }}>
-              <label style={{
-                display: "block",
-                marginBottom: "8px",
-                color: "#333",
-                fontWeight: "500",
-                fontSize: "18px",
-                textAlign: "left"
-              }}>Email</label>
+              <label style={{display: "block",marginBottom: "8px",color: "#333",fontWeight: "500",fontSize: "18px",textAlign: "left"}}>Email</label>
               <input
                 type="email"
                 name="email"
@@ -187,14 +150,7 @@ const Register = () => {
             </div>
             
             <div style={{ marginBottom: "20px" }}>
-              <label style={{
-                display: "block",
-                marginBottom: "8px",
-                color: "#333",
-                fontWeight: "500",
-                fontSize: "18px",
-                textAlign: "left"
-              }}>Username</label>
+              <label style={{display: "block",marginBottom: "8px",color: "#333",fontWeight: "500",fontSize: "18px",textAlign: "left"}}>Username</label>
               <input
                 type="text"
                 name="username"
@@ -216,14 +172,7 @@ const Register = () => {
             </div>
             
             <div style={{ marginBottom: "20px" }}>
-              <label style={{
-                display: "block",
-                marginBottom: "8px",
-                color: "#333",
-                fontWeight: "500",
-                fontSize: "18px",
-                textAlign: "left"
-              }}>Password</label>
+              <label style={{display: "block",marginBottom: "8px",color: "#333",fontWeight: "500",fontSize: "18px",textAlign: "left"}}>Password</label>
               <div style={{ position: "relative" }}>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -263,14 +212,7 @@ const Register = () => {
             </div>
             
             <div style={{ marginBottom: "30px" }}>
-              <label style={{
-                display: "block",
-                marginBottom: "8px",
-                color: "#333",
-                fontWeight: "500",
-                fontSize: "18px",
-                textAlign: "left"
-              }}>Confirm Password</label>
+              <label style={{display: "block",marginBottom: "8px",color: "#333",fontWeight: "500",fontSize: "18px",textAlign: "left"}}>Confirm Password</label>
               <div style={{ position: "relative" }}>
                 <input
                   type={showConfirmPassword ? "text" : "password"}
@@ -311,19 +253,7 @@ const Register = () => {
             
             <button
               type="submit"
-              style={{
-                width: "100%",
-                padding: "14px",
-                backgroundColor: "#4285f4",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                fontSize: "16px",
-                fontWeight: "500",
-                cursor: "pointer",
-                marginBottom: "20px"
-              }}
-            >
+              style={{width: "100%",padding: "14px",backgroundColor: "#4285f4",color: "white",border: "none",borderRadius: "4px",fontSize: "16px",fontWeight: "500",cursor: "pointer",marginBottom: "20px"}}>
               Register
             </button>
             
