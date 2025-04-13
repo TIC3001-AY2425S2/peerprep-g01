@@ -192,22 +192,24 @@ const Register = () => {
                   }}
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: "absolute",
-                    right: "10px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: "16px"
-                  }}
-                >
-                  {showPassword ? "👁️" : "👁️"}
-                </button>
+                {formData.password && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "10px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "16px"
+                    }}
+                  >
+                    {showPassword ? "👁️" : "👁️"}
+                  </button>
+                )}
               </div>
             </div>
             
@@ -232,22 +234,24 @@ const Register = () => {
                   }}
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={{
-                    position: "absolute",
-                    right: "10px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: "16px"
-                  }}
-                >
-                  {showConfirmPassword ? "👁️" : "👁️"}
-                </button>
+                {formData.confirmPassword && (
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "10px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "16px"
+                    }}
+                  >
+                    {showConfirmPassword ? "👁️" : "👁️"}
+                  </button>
+                )}
               </div>
             </div>
             
