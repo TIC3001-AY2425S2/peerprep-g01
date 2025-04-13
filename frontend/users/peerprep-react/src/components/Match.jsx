@@ -632,7 +632,7 @@ const MatchPage = () => {
             <tbody>
               {filteredQuestions.map((q, index) => (
                 <tr key={index} style={{borderBottom: "1px solid #eee"}}>
-                  <td style={{padding: "12px 16px",textAlign: "left",fontWeight: "500",color: "#666"}}>{q.title}</td>
+                  <td style={{padding: "12px 16px",textAlign: "left",fontWeight: "500",color: "#666"}} title={q.title}>{q.title}</td>
                   <td style={{padding: "12px 16px",textAlign: "center"}}>
                     <span style={{
                       display: "inline-block",
@@ -661,15 +661,13 @@ const MatchPage = () => {
                       ))}
                     </div>
                   </td>
-                  <td style={{padding: "12px 16px",color: "#666",fontSize: "14px"}}>
+                  <td style={{padding: "12px 16px",color: "#666",fontSize: "14px"}} title={q.description}>
                     {q.description && q.description.length > 80 
                       ? `${q.description.substring(0, 80)}...` 
                       : q.description}
                   </td>
                   <td style={{padding: "12px 16px",textAlign: "center"}}>
-                    <a href={q.link} target="_blank" rel="noopener noreferrer" 
-                      style={{color: "#4285f4",textDecoration: "none",fontWeight: "500"}}
-                    >
+                    <a href={q.link} target="_blank" rel="noopener noreferrer" style={{color: "#4285f4",textDecoration: "none",fontWeight: "500"}}title={q.link}>
                       View Problem
                     </a>
                   </td>
