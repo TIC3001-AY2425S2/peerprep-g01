@@ -12,7 +12,6 @@ RUN npm install
 COPY . .
 
 EXPOSE 3004
-#EXPOSE 3005
 
 # Use wait script as entrypoint
 ENTRYPOINT ["npm", "start"] 
